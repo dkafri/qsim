@@ -227,6 +227,7 @@ void test_kstate_apply_2q_gate() {
   const Complex& one = Complex{1};
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 0), one));
 
+  //Apply X on "a", which has qubit 0
   qsim::Cirq::Matrix1q<Simulator::fp_type> X_mat{0, 1, 1, 0};
   k_state.apply(X_mat, {"a"});
   vector<unsigned> expected{0};
