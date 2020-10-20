@@ -54,14 +54,13 @@ class KState {
     }
 
     // Initialize state vector as zero state.
-    StateSpace(max_qubits).SetStateZero(state_vec);
+    StateSpace(num_threads).SetStateZero(state_vec);
 
   }
 
   /** Copy constructor*/
   KState(const KState& k_state) :
-      state_vec(StateSpace(k_state.max_qubits,
-                           k_state.num_threads).CreateState()),
+      state_vec(StateSpace(k_state.num_threads).Create(k_state.max_qubits)),
       num_threads(k_state.num_threads), max_qubits(k_state.max_qubits) {
 
     //copy axis_qubits and qubit_axis
@@ -72,7 +71,7 @@ class KState {
       axis_qubits[key_value.first] = key_value.second;
     }
 
-    StateSpace(max_qubits, num_threads).CopyState(k_state.state_vec, state_vec);
+    StateSpace(num_threads).Copy(k_state.state_vec, state_vec);
 
   }
 
@@ -121,11 +120,7 @@ class KState {
 
   /* State with current vector size.*/
   State active_state() {
-    auto state_space = active_state_space();
-    uint64_t size =
-        state_space.MinimumRawSize(2 * (uint64_t{1} << num_active_qubits()));
-    return state_space.CreateState(state_vec.get(), size);
-
+    return StateSpace(num_threads).Create(state_vec.get(), num_active_qubits());
   }
 
   /** Allocate a qubit to an axis.
