@@ -297,8 +297,8 @@ class KState {
     auto qubits = qubits_of(axes);
     assert(qubits.size() == 2);
     auto gate = qsim::Cirq::MatrixGate2<fp_type>::Create(0,
-                                                         qubits[1],
                                                          qubits[0],
+                                                         qubits[1],
                                                          matrix);
     // Apply gate
     auto state = active_state();

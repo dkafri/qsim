@@ -238,9 +238,9 @@ void test_kstate_apply_2q_gate() {
 
   //CNOT from "a" to "b"
   qsim::Cirq::Matrix2q<Simulator::fp_type> CNOT_mat{1, 0, 0, 0,
+                                                    0, 1, 0, 0,
                                                     0, 0, 0, 1,
-                                                    0, 0, 1, 0,
-                                                    0, 1, 0, 0};
+                                                    0, 0, 1, 0};
   k_state.apply(CNOT_mat, {"a", "b"});
   //State |011>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), one));
