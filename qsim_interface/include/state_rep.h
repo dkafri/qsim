@@ -201,8 +201,10 @@ class KState {
         // If both qubits belong to the same axis, they must be removed
         // in the order in which they are added.
         for (const auto& q : qubits_of(a.second)) {
+          //a qubit was added first, so it should be removed last
           if (q == a.first)
             return false;
+          //b qubit was added first, so a's qubit should be removed first
           if (q == b.first)
             return true;
         }
