@@ -13,8 +13,11 @@
 #include <unordered_map>
 #include <list>
 #include <cassert>
-
+#include <gate_appl.h>
+#include <set>
+#include <unordered_set>
 #include "../../lib/gates_cirq.h"
+#include "q_ops.h"
 
 /* Data representation of a state vector with variable axis dimensions.
  *
@@ -46,11 +49,9 @@ class KState {
 
     // Assign qubits to axis labels. Assume all axes are initially allocated one
     // qubit.
-    unsigned q = 0;
     for (auto axis_ptr = axis_labels.begin(); axis_ptr != axis_labels.end();
-         ++axis_ptr, q++) {
-      axis_qubits[*axis_ptr].push_back(q);
-      qubit_axis.push_back(*axis_ptr);
+         ++axis_ptr) {
+      add_qubit(*axis_ptr);
     }
 
     // Initialize state vector as zero state.
@@ -88,7 +89,7 @@ class KState {
 
     if (num_active_qubits() > source.num_active_qubits()) {
       State my_state = active_state();
-      StateSpace(num_threads).SetAllZeros(my_state);
+      active_state_space().SetAllZeros(my_state);
     }
 
     //copy axis_qubits and qubit_axis
@@ -157,7 +158,7 @@ class KState {
 
     if (last_active_q != removed_q) {
       auto state = active_state();
-      auto qubits = std::vector<unsigned>{last_active_q, removed_q};
+      std::vector<unsigned> qubits{last_active_q, removed_q};
       active_simulator().ApplyGate(qubits, swap_matrix.data(), state);
 
       // Update the axis qubit registry for the axis involved in the swap.
@@ -173,6 +174,80 @@ class KState {
 
   }
 
+  /** Remove qubits from a sequence of axes.
+   *
+   * Removal order is chosen to minimize any required swaps.
+   *
+   * @param axes: Axes for which all qubits are to be removed. Repeats are
+   *     ignored since all qubits are removed.
+   * */
+  void remove_qubits_of(const std::vector<std::string>& axes) {
+    // Removal order is chosen to minimize any required swaps. This is done
+    // by ensuring that calls to remove_qubit are invoked for the axis whose
+    // most recently added qubit is highest in the order.
+    using QubitAndAxis =std::pair<unsigned, std::string>;
+    std::list<QubitAndAxis> q_and_ax;
+
+    std::unordered_set<std::string> seen;
+    for (const auto& ax : axes) {
+      if (seen.find(ax) != seen.end())
+        continue; //Skip repeats
+      for (const auto& q : qubits_of(ax)) {
+        q_and_ax.push_back({q, ax});
+      }
+    }
+
+    auto cmp = [this](const QubitAndAxis& a, const QubitAndAxis& b) {
+      if (a.second == b.second) {
+        // If both qubits belong to the same axis, they must be removed
+        // in the order in which they are added.
+        for (const auto& q : qubits_of(a.second)) {
+          if (q == a.first)
+            return false;
+          if (q == b.first)
+            return true;
+        }
+      }
+
+      return a.first > b.first;
+    };
+    q_and_ax.sort(cmp);
+
+    for (const auto& pair: q_and_ax) {
+      remove_qubit(pair.second);
+    }
+
+  }
+
+  /** Add qubits required for a QOperator.*/
+  template<size_t num_qubit>
+  void add_qubits_for(const QOperator<fp_type, num_qubit>& q_op) {
+    for (const auto& ax :q_op.added_axes)
+      add_qubit(ax);
+  }
+
+  /** Move qubits from one axis to another.
+   *
+   * This is equivalent to relabeling an axis. The ordering of qubit
+   * assignments is preserved.
+   *
+   * @param src: The axis whose qubits should be transferred.
+   * @param dest: The axis receiving qubits. This axis must not have any
+   *              allocated qubits.
+   * */
+  void transfer_qubits(const std::string& src, const std::string& dest) {
+
+    assert(axis_qubits[dest].size() == 0);
+
+    //reassign qubits from source to destination
+    axis_qubits[dest] = std::move(axis_qubits[src]);
+    axis_qubits[src].clear();
+
+    //Update qubit_axes
+    for (const auto& q:axis_qubits[dest])
+      qubit_axis[q] = dest;
+  }
+
   /** Print amplitudes of all active qubits to cout.*/
   void print_amplitudes() {
 
@@ -186,34 +261,16 @@ class KState {
 
   }
 
-  /** Qubits allocated to multiple axes.*/
-  template<typename StringIterable>
-  std::vector<unsigned> qubits_of_many(StringIterable axes) {
-    std::vector<unsigned> out{};
-
-    for (auto axis_ptr = axes.begin(); axis_ptr != axes.end(); ++axis_ptr) {
-      out.insert(out.end(),
-                 axis_qubits[axis_ptr].begin(),
-                 axis_qubits[axis_ptr].end());
-    }
-    return out;
+  /** Rescale the state vector by a constant.*/
+  void rescale(double scale) {
+    auto state = active_state();
+    active_state_space().Multiply(scale, state);
   }
 
   /** Qubits allocated to a given axis.*/
   std::vector<unsigned> qubits_of(const std::string& axis) {
     const auto& qubits = axis_qubits[axis];
     return std::vector<unsigned>(qubits.begin(), qubits.end());
-  }
-
-  /** Qubits allocated to one or more axes */
-  std::vector<unsigned> qubits_of(const std::initializer_list<std::string>& axes
-  ) {
-    std::vector<unsigned> out{};
-
-    for (const auto& axis : axes)
-      out.insert(out.end(), axis_qubits[axis].begin(), axis_qubits[axis].end());
-
-    return out;
   }
 
   /** Qubits allocated to one or more axes */
@@ -226,6 +283,51 @@ class KState {
     return out;
   }
 
+  /** Apply a matrix to the specified axes.
+   *
+   * @param matrix: Square matrix (array of array, complex float type) to apply
+   *     to the state.
+   * @param axes: Order of axes corresponding to the qubits of the matrix.
+   *     Must satisfy matrix.size() == 2^axes.size()
+   * */
+  void apply(const qsim::Cirq::Matrix2q<fp_type>& matrix,
+             const std::vector<std::string>& axes) {
+
+
+    // Create appropriate gate structure matching qubit ordering.
+    auto qubits = qubits_of(axes);
+    assert(qubits.size() == 2);
+    auto gate = qsim::Cirq::MatrixGate2<fp_type>::Create(0,
+                                                         qubits[0],
+                                                         qubits[1],
+                                                         matrix);
+    // Apply gate
+    auto state = active_state();
+    qsim::ApplyGate(active_simulator(), gate, state);
+  }
+
+  /** Apply a matrix to the specified axes.
+ *
+ * @param matrix: Square matrix (array of array, complex float type) to apply
+ *     to the state.
+ * @param axes: Order of axes corresponding to the qubits of the matrix.
+ *     Must satisfy matrix.size() == 2^axes.size()
+ * */
+  void apply(const qsim::Cirq::Matrix1q<fp_type>& matrix,
+             const std::vector<std::string>& axes) {
+    // Create appropriate gate structure matching qubit ordering.
+    auto qubits = qubits_of(axes);
+    assert(qubits.size() == 1);
+    auto gate = qsim::Cirq::MatrixGate1<fp_type>::Create(0, qubits[0], matrix);
+    // Apply gate
+    auto state = active_state();
+    qsim::ApplyGate(active_simulator(), gate, state);
+  }
+
+  double norm_squared() {
+    auto state = active_state();
+    return active_state_space().Norm(state);
+  }
  private:
   // Attributes
   State state_vec;
