@@ -46,7 +46,16 @@ int main() {
   k_state.add_qubits_for(q_op);
   k_state.apply(q_op.matrix, q_op.qubit_axes);
 
-  cout << "after setting c in pluse state:\n";
+  cout << "after setting c in plus state:\n";
+  k_state.print_amplitudes();
+
+  //Apply CNOT between c and b
+  qsim::Cirq::Matrix2q<Simulator::fp_type> CNOT_mat{1, 0, 0, 0,
+                                                    0, 1, 0, 0,
+                                                    0, 0, 0, 1,
+                                                    0, 0, 1, 0};
+  k_state.apply(CNOT_mat, {"c", "b"});
+  cout << "After CNOT from c to a\n";
   k_state.print_amplitudes();
 
   KState<Simulator> tmp_state(k_state);
@@ -57,7 +66,7 @@ int main() {
       q_op1{{sqrt_half, -sqrt_half, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
 
   unsigned k_ind = 0;
-  double norm2 = 1.0;
+  double norm2;
   random_device rd;
   std::mt19937 rgen(rd());
   double cutoff = qsim::RandomValue(rgen, 1.0);
@@ -69,18 +78,33 @@ int main() {
     k_state.apply(k_op.matrix, k_op.qubit_axes);
 
     norm2 = k_state.norm_squared();
+    cout << "sampling norm: " << norm2 << endl;
     cutoff -= norm2;
-    if (cutoff < 0)
+    if (cutoff < 0) { // operator sampled
       // Apply swaps
       for (auto ii = 0; ii < k_op.swap_sources.size(); ii++) {
         k_state.transfer_qubits(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
       }
-    // Remove axes
-    k_state.remove_qubits_of(k_op.removed_axes);
+      // Remove axes
+      k_state.remove_qubits_of(k_op.removed_axes);
+      //Normalize
+      k_state.rescale(1 / sqrt(norm2));
 
-    break;
+      break;
+    }
+    // Operator not sampled -> backtrack. original vector before removing qubits
     k_state.copy_from(tmp_state);
+    // For removal to be free we need to remove in reverse order.
+    // We can do internal processing for this?
+    k_state.remove_qubits_of(k_op.added_axes);
+    tmp_state.remove_qubits_of(k_op.added_axes);
+    k_ind++;
+
   }
+
+  cout << "sampled index: " << k_ind << endl;
+  cout << "final amplitudes:\n";
+  k_state.print_amplitudes();
 
   return 0;
 }
