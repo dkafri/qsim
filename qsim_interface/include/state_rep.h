@@ -13,7 +13,6 @@
 #include <unordered_map>
 #include <list>
 #include <cassert>
-#include <gate_appl.h>
 #include <set>
 #include <unordered_set>
 #include "../../lib/gates_cirq.h"
@@ -298,12 +297,12 @@ class KState {
     auto qubits = qubits_of(axes);
     assert(qubits.size() == 2);
     auto gate = qsim::Cirq::MatrixGate2<fp_type>::Create(0,
-                                                         qubits[0],
                                                          qubits[1],
+                                                         qubits[0],
                                                          matrix);
     // Apply gate
     auto state = active_state();
-    qsim::ApplyGate(active_simulator(), gate, state);
+    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
   }
 
   /** Apply a matrix to the specified axes.
@@ -321,7 +320,7 @@ class KState {
     auto gate = qsim::Cirq::MatrixGate1<fp_type>::Create(0, qubits[0], matrix);
     // Apply gate
     auto state = active_state();
-    qsim::ApplyGate(active_simulator(), gate, state);
+    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
   }
 
   double norm_squared() {
