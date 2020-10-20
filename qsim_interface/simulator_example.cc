@@ -40,7 +40,7 @@ int main() {
   qsim::ApplyGate(simulator, X, state);
   print_amplitudes(state);
 
-  //Apply CNOT 0->1, expect |11>
+  //Apply CNOT 0->1, expect |11> but still get |10>
   qsim::Cirq::Matrix2q<Simulator::fp_type> CNOT_mat{1, 0, 0, 0,
                                                     0, 0, 0, 1,
                                                     0, 0, 1, 0,
