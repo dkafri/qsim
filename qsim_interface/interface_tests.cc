@@ -224,7 +224,8 @@ void test_kstate_apply_2q_gate() {
 
   // Start in 000 state
   auto state = k_state.active_state();
-  TEST_CHECK(equals(StateSpace::GetAmpl(state, 0), Complex{1}));
+  const Complex& one = Complex{1};
+  TEST_CHECK(equals(StateSpace::GetAmpl(state, 0), one));
 
   qsim::Cirq::Matrix1q<Simulator::fp_type> X_mat{0, 1, 1, 0};
   k_state.apply(X_mat, {"a"});
@@ -232,7 +233,7 @@ void test_kstate_apply_2q_gate() {
   TEST_CHECK(equals(k_state.qubits_of("a"), expected));
 
   //first qubit index changes fastest, in state |0,0,1>
-  TEST_CHECK(equals(StateSpace::GetAmpl(state, 1), Complex{1}));
+  TEST_CHECK(equals(StateSpace::GetAmpl(state, 1), one));
 
   //CNOT from "a" to "b"
   qsim::Cirq::Matrix2q<Simulator::fp_type> CNOT_mat{1, 0, 0, 0,
@@ -241,15 +242,15 @@ void test_kstate_apply_2q_gate() {
                                                     0, 1, 0, 0};
   k_state.apply(CNOT_mat, {"a", "b"});
   //State |011>
-  TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), Complex{1}));
+  TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), one));
 
   //CNOT from "c" to "a" (does nothing)
   k_state.apply(CNOT_mat, {"c", "a"});
-  TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), Complex{1}));
+  TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), one));
 
   //CNOT from "b" to "c" --> |111>
   k_state.apply(CNOT_mat, {"b", "c"});
-  TEST_CHECK(equals(StateSpace::GetAmpl(state, 7), Complex{1}));
+  TEST_CHECK(equals(StateSpace::GetAmpl(state, 7), one));
 
 }
 
