@@ -55,7 +55,7 @@ int main() {
                                                     0, 0, 0, 1,
                                                     0, 0, 1, 0};
   k_state.apply(CNOT_mat, {"c", "b"});
-  cout << "After CNOT from c to a\n";
+  cout << "After CNOT from c to b\n";
   k_state.print_amplitudes();
 
   KState<Simulator> tmp_state(k_state);
@@ -92,10 +92,11 @@ int main() {
 
       break;
     }
-    // Operator not sampled -> backtrack. original vector before removing qubits
+    // Operator not sampled -> backtrack. Copy original vector before
+    // removing qubits. We need to do this because the removed qubits must be
+    // in the zero state before they are removed.
     k_state.copy_from(tmp_state);
-    // For removal to be free we need to remove in reverse order.
-    // We can do internal processing for this?
+    // Qubit removal is free because the added qubits are in the end.
     k_state.remove_qubits_of(k_op.added_axes);
     tmp_state.remove_qubits_of(k_op.added_axes);
     k_ind++;
