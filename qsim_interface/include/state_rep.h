@@ -41,7 +41,7 @@ class KState {
          unsigned max_qubits,
          const StringIterable axis_labels
   )
-      : state_vec(StateSpace(max_qubits, num_threads).CreateState()),
+      : state_vec(StateSpace(num_threads).Create(max_qubits)),
         num_threads(num_threads), max_qubits(max_qubits) {
 
     // Assign qubits to axis labels. Assume all axes are initially allocated one
@@ -54,7 +54,7 @@ class KState {
     }
 
     // Initialize state vector as zero state.
-    StateSpace(max_qubits, num_threads).SetStateZero(state_vec);
+    StateSpace(max_qubits).SetStateZero(state_vec);
 
   }
 
@@ -111,12 +111,12 @@ class KState {
 
   /** State space appropriate to current vector size.*/
   StateSpace active_state_space() const {
-    return StateSpace(num_active_qubits(), num_threads);
+    return StateSpace(num_threads);
   }
 
   /** Simulator appropriate to current vector size.*/
   Simulator active_simulator() const {
-    return Simulator(num_active_qubits(), num_threads);
+    return Simulator(num_threads);
   }
 
   /* State with current vector size.*/
