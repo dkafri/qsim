@@ -152,10 +152,8 @@ void test_kstate_copy_constructor() {
 
 void test_remove_qubits_of() {
 
-  KState<Simulator> k_state(3, 5, vector<string>{"a", "b", "c", "a", "b"});
+  KState<Simulator> k_state(3, 5, vector<string>{"c", "a", "b", "a", "b"});
 
-//  auto state = k_state.active_state();
-//  k_state.remove_qubit("c");
   k_state.remove_qubits_of({"a", "b", "c"});
 
   for (const auto& ax : {"a", "b", "c"})
