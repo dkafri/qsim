@@ -50,10 +50,10 @@ int main() {
   k_state.print_amplitudes();
 
   //Apply CNOT between c and b
-  qsim::Cirq::Matrix2q<Simulator::fp_type> CNOT_mat{1, 0, 0, 0,
-                                                    0, 1, 0, 0,
-                                                    0, 0, 0, 1,
-                                                    0, 0, 1, 0};
+  qsim::Cirq::Matrix2q<fp_type> CNOT_mat{1, 0, 0, 0,
+                                         0, 1, 0, 0,
+                                         0, 0, 0, 1,
+                                         0, 0, 1, 0};
   k_state.apply(CNOT_mat, {"c", "b"});
   cout << "After CNOT from c to b\n";
   k_state.print_amplitudes();
