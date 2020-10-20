@@ -15,16 +15,12 @@
 
 #define DEBUG 0 //Set to 1 to disable acutest, which allows for debugging.
 
-
-
 #if DEBUG
 void TEST_CHECK(bool v) { assert(v); };
 void TEST_CASE(const char*) {};
 #else
 #include "include/acutest.h"
 #endif
-
-
 
 using namespace std;
 using Simulator = qsim::Simulator<qsim::For>;
@@ -47,33 +43,44 @@ void test_kstate_space_multiply_norm() {
 void test_kstate_add_remove_qubits_size_grows() {
   KState<Simulator> k_state(3, 5, vector<string>{});
 
-  unsigned expected = 1;
+  unsigned expected = 0;
   auto state = k_state.active_state();
-  TEST_CHECK(equals(expected, state.Size()));
+  TEST_CHECK(equals(expected, state.num_qubits()));
 
   k_state.add_qubit("a");
-  expected *= 2;
-  TEST_CHECK(equals(expected, k_state.active_state_space().Size()));
+  expected += 1;
+  state = k_state.active_state();
+  TEST_CHECK(equals(expected, state.num_qubits()));
 
   k_state.add_qubit("a");
-  expected *= 2;
-  TEST_CHECK(equals(expected, k_state.active_state_space().Size()));
+  expected += 1;
+  state = k_state.active_state();
+  TEST_CHECK(equals(expected, state.num_qubits()));
 
   k_state.add_qubit("b");
-  expected *= 2;
-  TEST_CHECK(equals(expected, k_state.active_state_space().Size()));
+  expected += 1;
+  state = k_state.active_state();
+  TEST_CHECK(equals(expected, state.num_qubits()));
 
   k_state.add_qubit("c");
-  expected *= 2;
-  TEST_CHECK(equals(expected, k_state.active_state_space().Size()));
+  expected += 1;
+  state = k_state.active_state();
+  TEST_CHECK(equals(expected, state.num_qubits()));
+
+  k_state.remove_qubit("b");
+  expected -= 1;
+  state = k_state.active_state();
+  TEST_CHECK(equals(expected, state.num_qubits()));
 
   k_state.remove_qubit("a");
-  expected /= 2;
-  TEST_CHECK(equals(expected, k_state.active_state_space().Size()));
+  expected -= 1;
+  state = k_state.active_state();
+  TEST_CHECK(equals(expected, state.num_qubits()));
 
   k_state.remove_qubit("c");
-  expected /= 2;
-  TEST_CHECK(equals(expected, k_state.active_state_space().Size()));
+  expected -= 1;
+  state = k_state.active_state();
+  TEST_CHECK(equals(expected, state.num_qubits()));
 
 }
 
@@ -125,7 +132,7 @@ void test_kstate_copy_constructor() {
     auto expected = KState<Simulator>::StateSpace::GetAmpl(state, i);
     TEST_CHECK(actual == expected);
   }
-  TEST_CHECK(state_copy.size() == state.size());
+  TEST_CHECK(state_copy.num_qubits() == state.num_qubits());
 }
 
 //void test_kstate_add_qubits_from_qop() {
@@ -176,7 +183,7 @@ void test_kstate_copy_from() {
     auto expected = KState<Simulator>::StateSpace::GetAmpl(state, i);
     TEST_CHECK(actual == expected);
   }
-  TEST_CHECK(state_copy.size() == state.size());
+  TEST_CHECK(state_copy.num_qubits() == state.num_qubits());
 }
 
 void test_kstate_apply_1q_gate() {
