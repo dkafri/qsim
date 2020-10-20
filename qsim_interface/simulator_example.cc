@@ -28,8 +28,7 @@ int main() {
   unsigned num_threads = 4;
   unsigned num_qubits = 2;
   Simulator simulator(num_threads);
-  StateSpace space(num_threads);
-  State state = StateSpace::Create(2);
+  State state = StateSpace::Create(num_qubits);
 
   //Set to |00>
   StateSpace::SetAmpl(state, 0, 1, 0);
