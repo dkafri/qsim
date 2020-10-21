@@ -40,7 +40,7 @@ int main() {
   constexpr complex_type sqrt_half = 0.7071067811865476;
 
   qsim::Cirq::Matrix1q<fp_type> matrix1{sqrt_half, 0, sqrt_half, 0};
-  QOperator<fp_type, 1> q_op{matrix1, {"c"}, {"c"}, {}, {}, {}};
+  KOperator<fp_type, 1> q_op{matrix1, {"c"}, {"c"}, {}, {}, {}};
 
   for (const auto& ax: q_op.added_axes) k_state.add_qubit(ax);
   k_state.apply(q_op.matrix, q_op.qubit_axes);
@@ -59,9 +59,9 @@ int main() {
 
   KState<Simulator> tmp_state(k_state);
   // Measure b in + basis stochastically.
-  QOperator<fp_type, 1>
+  KOperator<fp_type, 1>
       q_op0{{sqrt_half, sqrt_half, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
-  QOperator<fp_type, 1>
+  KOperator<fp_type, 1>
       q_op1{{sqrt_half, -sqrt_half, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
 
   unsigned k_ind = 0;
