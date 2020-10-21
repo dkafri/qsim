@@ -220,13 +220,6 @@ class KState {
 
   }
 
-  /** Add qubits required for a QOperator.*/
-  template<size_t num_qubit>
-  void add_qubits_for(const QOperator<fp_type, num_qubit>& q_op) {
-    for (const auto& ax :q_op.added_axes)
-      add_qubit(ax);
-  }
-
   /** Move qubits from one axis to another.
    *
    * This is equivalent to relabeling an axis. The ordering of qubit

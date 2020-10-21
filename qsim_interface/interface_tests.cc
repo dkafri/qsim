@@ -135,21 +135,6 @@ void test_kstate_copy_constructor() {
   TEST_CHECK(state_copy.num_qubits() == state.num_qubits());
 }
 
-//void test_kstate_add_qubits_from_qop() {
-//  KState<Simulator> k_state(3, 5, vector<string>{});
-//  QOperator<Simulator::fp_type, 2>
-//      q_op{{}, {"a", "b"}, {"a", "b"}, {}, {}, {}};
-//  QOperator<Simulator::fp_type, 2>
-//      q_op2{{}, {"a", "c"}, {"a", "c"}, {}, {}, {}};
-//
-//  k_state.add_qubits_for(q_op);
-//  k_state.add_qubits_for(q_op2);
-//
-//  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{0, 2}));
-//  TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{1}));
-//  TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{3}));
-//}
-
 void test_remove_qubits_of() {
 
   KState<Simulator> k_state(3, 5, vector<string>{"c", "a", "b", "a", "b"});
@@ -277,7 +262,6 @@ TEST_LIST = {
     {"copy_constructor", test_kstate_copy_constructor},
     {"copy_from", test_kstate_copy_from},
     {"qubit_remove_order", test_kstate_correct_qubit_removed},
-//    {"add_qubit_for_qop", test_kstate_add_qubits_from_qop},
     {"apply sq gate", test_kstate_apply_1q_gate},
     {"apply 2q gate", test_kstate_apply_2q_gate},
     {"transfer qubits", test_kstate_transfer_qubits},
