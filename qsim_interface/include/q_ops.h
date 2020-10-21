@@ -37,7 +37,7 @@
  * gates.
  * */
 template<typename fp_type, size_t num_qubits>
-struct QOperator {
+struct KOperator {
   static_assert(num_qubits == 1 || num_qubits == 2,
                 "num_qubits must be 1 or 2.");
   typedef typename std::conditional<num_qubits == 1,
@@ -61,11 +61,11 @@ struct QOperator {
  * be unique. These axes should not have allocated qubits before the swap 
  * operation. Must not overlap with qubit_axis.*/
   std::vector<std::string> removed_axes; /** Which axes have their qubits 
- * removed after the QOperator matrix is applied and swaps occur. Must not 
+ * removed after the KOperator matrix is applied and swaps occur. Must not
  * overlap with swap_sources. All elements must be unique and contained in
  * qubit_axes. Any removed axis has all of its qubits deallocated.*/
 
-  QOperator(const MatrixType& matrix,
+  KOperator(const MatrixType& matrix,
             const std::vector<std::string>& added_axes,
             const std::vector<std::string>& qubit_axes,
             const std::vector<std::string>& swap_sources,
