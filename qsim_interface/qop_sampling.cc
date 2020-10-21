@@ -40,10 +40,9 @@ int main() {
   constexpr complex_type sqrt_half = 0.7071067811865476;
 
   qsim::Cirq::Matrix1q<fp_type> matrix1{sqrt_half, 0, sqrt_half, 0};
-
   QOperator<fp_type, 1> q_op{matrix1, {"c"}, {"c"}, {}, {}, {}};
 
-  k_state.add_qubits_for(q_op);
+  for (const auto& ax: q_op.added_axes) k_state.add_qubit(ax);
   k_state.apply(q_op.matrix, q_op.qubit_axes);
 
   cout << "after setting c in plus state:\n";
@@ -72,8 +71,10 @@ int main() {
   double cutoff = qsim::RandomValue(rgen, 1.0);
 
   for (auto& k_op: {q_op0, q_op1}) {
-    k_state.add_qubits_for(k_op);
-    tmp_state.add_qubits_for(k_op);
+    for (const auto& ax: k_op.added_axes) {
+      k_state.add_qubit(ax);
+      tmp_state.add_qubit(ax);
+    }
 
     k_state.apply(k_op.matrix, k_op.qubit_axes);
 
