@@ -261,18 +261,41 @@ class KState {
     active_state_space().Multiply(scale, state);
   }
 
-  /** Qubits allocated to a given axis.*/
+  /** All qubits allocated to a given axis.*/
   std::vector<unsigned> qubits_of(const std::string& axis) {
     const auto& qubits = axis_qubits[axis];
     return std::vector<unsigned>(qubits.begin(), qubits.end());
   }
 
-  /** Qubits allocated to one or more axes */
-  std::vector<unsigned> qubits_of(const std::vector<std::string>& axes) {
+  /** Qubits allocated to one or more axes, accounting for repeats
+   *
+   * Returns a vector of qubit indices with exactly the same length as the
+   * input. If an axis is allocated more than one qubit, it should be included
+   * in the input that many times.
+   *
+   * @param axes - Sequence of axis labels. May contain repeats.
+   *
+   * Example:
+   * Axis "a" is allocated qubits [2,0]
+   * and axis "b" is allocated qubits [1,3]
+   *
+   * Then input {"a","b","a"} returns [2,1,0]
+   * */
+  std::vector<unsigned> qubits_vec(const std::vector<std::string>& axes) {
     std::vector<unsigned> out{};
+    out.reserve(axes.size());
 
-    for (const auto& axis : axes)
-      out.insert(out.end(), axis_qubits[axis].begin(), axis_qubits[axis].end());
+    std::unordered_map<std::string, std::list<unsigned>::const_iterator> iters;
+    std::list<unsigned>::const_iterator iter;
+    for (const auto& axis : axes) {
+      //get current qubit iterator for axis
+      if (iters.count(axis)) iter = iters.at(axis);
+      else iter = axis_qubits[axis].cbegin();
+
+      assert(iter != axis_qubits[axis].cend());
+      out.push_back(*iter);
+      iters[axis] = ++iter;
+    }
 
     return out;
   }
@@ -289,7 +312,7 @@ class KState {
 
 
     // Create appropriate gate structure matching qubit ordering.
-    auto qubits = qubits_of(axes);
+    auto qubits = qubits_vec(axes);
     assert(qubits.size() == 2);
     auto gate = qsim::Cirq::MatrixGate2<fp_type>::Create(0,
                                                          qubits[0],
@@ -305,17 +328,43 @@ class KState {
  * @param matrix: Square matrix (array of array, complex float type) to apply
  *     to the state.
  * @param axes: Order of axes corresponding to the qubits of the matrix.
- *     Must satisfy matrix.size() == 2^axes.size()
+ *     Must satisfy matrix.size() == 2^axes.size(). Repeats are possible.
  * */
   void apply(const qsim::Cirq::Matrix1q<fp_type>& matrix,
              const std::vector<std::string>& axes) {
     // Create appropriate gate structure matching qubit ordering.
-    auto qubits = qubits_of(axes);
+    auto qubits = qubits_vec(axes);
     assert(qubits.size() == 1);
     auto gate = qsim::Cirq::MatrixGate1<fp_type>::Create(0, qubits[0], matrix);
     // Apply gate
     auto state = active_state();
     active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
+  }
+
+  /** Permute and apply a matrix to the specified axes.
+ *
+ * @param matrix: Matrix to apply, stored in qsim format (R,I,R,I, ... backwards
+   *     qubit order)
+ * @param axes: Order of axes corresponding to the qubits of the matrix.
+ *     Must satisfy matrix.size() == 2^axes.size()
+ * */
+  void apply(qsim::Matrix<fp_type>& matrix,
+             std::vector<std::string>& axes) {
+
+    auto qubits = qubits_vec(axes);
+
+    // qubits must be in increasing order in order to apply the matrix
+    // correctly. To account for this we need to permute the qubits and
+    // accordingly permute the matrix.
+    std::vector<unsigned> perm = NormalToGateOrderPermutation(qubits);
+    MatrixShuffle(perm, qubits.size(), matrix);
+
+
+
+
+    // Apply gate
+    auto state = active_state();
+    active_simulator().ApplyGate(qubits, matrix, state);
   }
 
   double norm_squared() {
