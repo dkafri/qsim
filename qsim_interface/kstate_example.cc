@@ -52,7 +52,7 @@ int main() {
   cout << "state after adding c and setting it to +:\n";
   k_state.print_amplitudes();
 
-  auto qubits = k_state.qubits_of(vector<string>{"c", "a"});
+  auto qubits = k_state.qubits_vec({"c", "a"});
 
   //Apply a CNOT from c to a
   auto CNOT = qsim::Cirq::CNOT<fp_type>::Create(0, qubits[0], qubits[1]).matrix;
