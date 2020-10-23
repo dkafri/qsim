@@ -37,14 +37,9 @@
  * this only applies to 4x4 matrices since qsim only handles at most 2-qubit
  * gates.
  * */
-template<typename fp_type, size_t num_qubits>
+template<typename fp_type>
 struct KOperator {
-  static_assert(num_qubits == 1 || num_qubits == 2,
-                "num_qubits must be 1 or 2.");
-  typedef typename std::conditional<num_qubits == 1,
-                                    qsim::Cirq::Matrix1q<fp_type>,
-                                    qsim::Cirq::Matrix2q<fp_type>>::type
-      MatrixType;
+  using MatrixType = qsim::Matrix<fp_type>;
 
   MatrixType matrix; /** Square matrix representation of a Kraus operator.*/
   std::vector<std::string> added_axes; /** Which elements of qubit_axes need 
@@ -80,7 +75,7 @@ struct KOperator {
         swap_sinks(swap_sinks),
         removed_axes(removed_axes) {
     //Validation
-    assert(qubit_axes.size() == num_qubits);
+    assert(powl(2, 2 * qubit_axes.size()) == matrix.size());
     // Elements of added_axes must be in qubit_axes an appropriate number of 
     // times.
     size_t count;
@@ -113,8 +108,8 @@ struct KOperator {
 };
 
 //A single channel, equivalent to Cirq definition of a Channel
-template<typename fp_type, size_t num_qubits>
-using KChannel = std::vector<KOperator<fp_type, num_qubits>>;
+template<typename fp_type>
+using KChannel = std::vector<KOperator<fp_type>>;
 
 ///** Representation of a KrausOperation*/
 //template<typename fp_type, size_t num_qubits>

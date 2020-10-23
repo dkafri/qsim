@@ -3,7 +3,7 @@
 //
 #include <iostream>
 #include <random>
-#include <q_ops.h>
+#include <k_ops.h>
 #include "include/state_rep.h"
 #include "../lib/formux.h"
 #include "../lib/simmux.h"

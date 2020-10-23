@@ -17,7 +17,7 @@
 #include <unordered_set>
 #include "../../lib/matrix.h"
 #include "../../lib/gates_cirq.h"
-#include "q_ops.h"
+#include "k_ops.h"
 
 /* Data representation of a state vector with variable axis dimensions.
  *
