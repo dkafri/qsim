@@ -25,6 +25,7 @@ void TEST_CASE(const char*) {};
 using namespace std;
 using Simulator = qsim::Simulator<qsim::For>;
 using Complex = complex<Simulator::fp_type>;
+using Matrix= qsim::Matrix<Simulator::fp_type>;
 
 void test_kstate_space_multiply_norm() {
   vector<string> axis_labels = {"a", "b"};
@@ -159,9 +160,9 @@ void test_apply_matrix() {
   KState<Simulator> k_state(3, 5, vector<string>{"c", "b"});
 
   //X on C
-  qsim::Matrix<Simulator::fp_type> X{0, 0, 1, 0, 1, 0, 0, 0};
+  Matrix X{0, 0, 1, 0, 1, 0, 0, 0};
   vector<string> axes{"c"};
-  k_state.apply(X, axes);
+  k_state.permute_and_apply(X, axes);
   //State |10> (|01> in reverse order)
   Complex one{1};
   auto state = k_state.active_state();
@@ -173,9 +174,7 @@ void test_apply_matrix() {
                                           0, 0, 0, 0, 1, 0, 0, 0};
 
   axes = {"c", "b"};
-  k_state.apply(matrix, axes);
-
-//  Axis order differs from reverse qubit order, expect change in matrix/axes
+  k_state.permute_and_apply(matrix, axes);
   TEST_CHECK(equals(axes, vector<string>{"b", "c"}));
 
   state = k_state.active_state();
@@ -186,11 +185,13 @@ void test_apply_matrix() {
             0, 0, 1, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 1, 0, 0, 0}; // undo permutation, but axes has changed
+  axes = {"b", "c"};
 
-  k_state.apply(matrix, axes);
-
+  k_state.permute_and_apply(matrix, axes);
   // Axis now matches reverse qubit order, expect no change in axes
   TEST_CHECK(equals(axes, vector<string>{"b", "c"}));
+
+
   // |11> CNOT-> |01> (|10> in reverse order)
   state = k_state.active_state();
   TEST_CHECK(equals(Simulator::StateSpace::GetAmpl(state, 2), one));
@@ -229,21 +230,24 @@ void test_kstate_apply_1q_gate() {
   auto state = k_state.active_state();
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 0), Complex{1}));
 
-  qsim::Cirq::Matrix1q<Simulator::fp_type> X_mat{0, 1, 1, 0};
-  k_state.apply(X_mat, {"a"});
+  Matrix X_mat{0, 0, 1, 0, 1, 0, 0, 0};
+  vector<string> axes{"a"};
+  k_state.permute_and_apply(X_mat, axes);
   vector<unsigned> expected{0};
   TEST_CHECK(equals(k_state.qubits_of("a"), expected));
 
   //first qubit index changes fastest, in state |0,0,1>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 1), Complex{1}));
 
-  k_state.apply(X_mat, {"b"});
+  axes = {"b"};
+  k_state.permute_and_apply(X_mat, axes);
   expected[0] = 1;
   TEST_CHECK(equals(k_state.qubits_of("b"), expected));
   //State |011>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), Complex{1}));
 
-  k_state.apply(X_mat, {"c"});
+  axes = {"c"};
+  k_state.permute_and_apply(X_mat, axes);
   expected[0] = 2;
   TEST_CHECK(equals(k_state.qubits_of("c"), expected));
   //State |111>
@@ -262,8 +266,9 @@ void test_kstate_apply_2q_gate() {
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 0), one));
 
   //Apply X on "a", which has qubit 0
-  qsim::Cirq::Matrix1q<Simulator::fp_type> X_mat{0, 1, 1, 0};
-  k_state.apply(X_mat, {"a"});
+  Matrix X_mat{0, 0, 1, 0, 1, 0, 0, 0};
+  vector<string> axes{"a"};
+  k_state.permute_and_apply(X_mat, axes);
   vector<unsigned> expected{0};
   TEST_CHECK(equals(k_state.qubits_of("a"), expected));
 
@@ -271,20 +276,34 @@ void test_kstate_apply_2q_gate() {
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 1), one));
 
   //CNOT from "a" to "b"
-  qsim::Cirq::Matrix2q<Simulator::fp_type> CNOT_mat{1, 0, 0, 0,
-                                                    0, 1, 0, 0,
-                                                    0, 0, 0, 1,
-                                                    0, 0, 1, 0};
-  k_state.apply(CNOT_mat, {"a", "b"});
+  Matrix CNOT_mat{1, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 1, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 1, 0,
+                  0, 0, 0, 0, 1, 0, 0, 0};
+  axes = {"a", "b"};
+
+  k_state.permute_and_apply(CNOT_mat, axes);
   //State |011>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), one));
 
   //CNOT from "c" to "a" (does nothing)
-  k_state.apply(CNOT_mat, {"c", "a"});
+  CNOT_mat = {1, 0, 0, 0, 0, 0, 0, 0,
+              0, 0, 1, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 1, 0,
+              0, 0, 0, 0, 1, 0, 0, 0};
+  axes = {"c", "a"};
+  k_state.permute_and_apply(CNOT_mat, axes);
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), one));
 
+
+
   //CNOT from "b" to "c" --> |111>
-  k_state.apply(CNOT_mat, {"b", "c"});
+  CNOT_mat = {1, 0, 0, 0, 0, 0, 0, 0,
+              0, 0, 1, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 1, 0,
+              0, 0, 0, 0, 1, 0, 0, 0};
+  axes = {"b", "c"};
+  k_state.permute_and_apply(CNOT_mat, axes);
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 7), one));
 
 }
