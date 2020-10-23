@@ -12,7 +12,6 @@
 
 using namespace std;
 
-
 int main() {
 
   using Simulator = qsim::Simulator<qsim::For>;
@@ -71,20 +70,37 @@ int main() {
       q_op1
       {{sqrt_half, 0, -sqrt_half, 0, 0, 0, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
 
-  auto op = KOperation<fp_type>::unconditioned({q_op0, q_op1},
-                                               true,
-                                               "measure b",
-                                               false);
+  auto measure_b = KOperation<fp_type>::unconditioned({q_op0, q_op1},
+                                                      true,
+                                                      "measure b",
+                                                      false);
 
-
-
-  // Do sampling
-  sample_op(op, k_state, tmp_state, registers, cutoff);
+  cutoff = qsim::RandomValue(rgen, 1.0);
+  sample_op(measure_b, k_state, tmp_state, registers, cutoff);
 
   cout << "after measuring b in the X basis\n";
   cout << "registers:\n";
   for (const auto& key_val: registers)
     cout << key_val.first << ": " << key_val.second << endl;
+  k_state.print_amplitudes();
+
+  //Apply H
+  KOperator<fp_type> Hop{{sqrt_half, 0, sqrt_half, 0,
+                          sqrt_half, 0, -sqrt_half, 0}, {}, {"c"}, {}, {}, {}};
+  auto H = KOperation<fp_type>::unconditioned({Hop});
+  cutoff = qsim::RandomValue(rgen, 1.0);
+  sample_op(H, k_state, tmp_state, registers, cutoff);
+  cout << "after H on c\n";
+  k_state.print_amplitudes();
+
+  //X on c conditioned on b measurement outcome
+  KOperator<fp_type> Xc{{0, 0, 1, 0, 1, 0, 0, 0}, {}, {"c"}, {}, {}, {}};
+  KOperation<fp_type>::ChannelMap map{{{0}, {}}, {{1}, {Xc}}};
+  KOperation<fp_type> conditional_flip{map, {"measure b"}};
+
+  cutoff = qsim::RandomValue(rgen, 1.0);
+  sample_op(conditional_flip, k_state, tmp_state, registers, cutoff);
+  cout<<"after conditional flip of c\n";
   k_state.print_amplitudes();
 
   return 0;
