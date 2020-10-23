@@ -5,7 +5,6 @@
 #include <random>
 #include <k_ops.h>
 #include "include/state_rep.h"
-#include "include/k_ops.h"
 #include "include/sampling.h"
 
 #include "../lib/formux.h"
@@ -13,13 +12,6 @@
 
 using namespace std;
 
-size_t log2_b(size_t number) {
-  size_t out = 0;
-
-  while (number >>= size_t{1}) ++out;
-
-  return out;
-}
 
 int main() {
 
