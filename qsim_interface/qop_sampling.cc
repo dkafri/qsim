@@ -54,6 +54,8 @@ int main() {
                                          0, 0, 0, 1,
                                          0, 0, 1, 0};
   k_state.apply(CNOT_mat, {"c", "b"});
+
+
   cout << "After CNOT from c to b\n";
   k_state.print_amplitudes();
 

@@ -15,6 +15,7 @@
 #include <cassert>
 #include <set>
 #include <unordered_set>
+#include "../../lib/matrix.h"
 #include "../../lib/gates_cirq.h"
 #include "q_ops.h"
 
@@ -274,27 +275,53 @@ class KState {
    * in the input that many times.
    *
    * @param axes - Sequence of axis labels. May contain repeats.
+   * @param reverse - Whether the qubits should be returned in reverse order
+   *     (this reflects qsim's ordering).
    *
    * Example:
    * Axis "a" is allocated qubits [2,0]
    * and axis "b" is allocated qubits [1,3]
    *
-   * Then input {"a","b","a"} returns [2,1,0]
+   * Input ({"a","b","a"},reverse=false) returns [2,1,0]
+   * Input ({"a","b","a},reverse=true) returns [0,3,2]
    * */
-  std::vector<unsigned> qubits_vec(const std::vector<std::string>& axes) {
+  std::vector<unsigned> qubits_vec(const std::vector<std::string>& axes,
+                                   bool reverse = false) {
     std::vector<unsigned> out{};
     out.reserve(axes.size());
 
-    std::unordered_map<std::string, std::list<unsigned>::const_iterator> iters;
-    std::list<unsigned>::const_iterator iter;
-    for (const auto& axis : axes) {
-      //get current qubit iterator for axis
-      if (iters.count(axis)) iter = iters.at(axis);
-      else iter = axis_qubits[axis].cbegin();
+    if (reverse) {
+      using IterType=std::list<unsigned>::const_reverse_iterator;
 
-      assert(iter != axis_qubits[axis].cend());
-      out.push_back(*iter);
-      iters[axis] = ++iter;
+      std::unordered_map<std::string, IterType> iters;
+      IterType iter;
+
+      for (auto axis_ptr = axes.rbegin(); axis_ptr != axes.rend(); ++axis_ptr) {
+        //get current qubit iterator for axis
+        if (iters.count(*axis_ptr)) iter = iters.at(*axis_ptr);
+        else iter = axis_qubits[*axis_ptr].rbegin();
+
+        assert(iter != axis_qubits[*axis_ptr].rend());
+        out.push_back(*iter);
+        iters[*axis_ptr] = ++iter;
+      }
+
+    } else {
+      using IterType=std::list<unsigned>::const_iterator;
+
+      std::unordered_map<std::string, IterType> iters;
+      IterType iter;
+
+      for (const auto& axis : axes) {
+        //get current qubit iterator for axis
+        if (iters.count(axis)) iter = iters.at(axis);
+        else iter = axis_qubits[axis].cbegin();
+
+        assert(iter != axis_qubits[axis].cend());
+        out.push_back(*iter);
+        iters[axis] = ++iter;
+      }
+
     }
 
     return out;
@@ -342,29 +369,39 @@ class KState {
   }
 
   /** Permute and apply a matrix to the specified axes.
- *
- * @param matrix: Matrix to apply, stored in qsim format (R,I,R,I, ... backwards
-   *     qubit order)
- * @param axes: Order of axes corresponding to the qubits of the matrix.
- *     Must satisfy matrix.size() == 2^axes.size()
+   *
+   * @param matrix: Matrix to apply, stored as alternating real and imaginary
+   * parts.
+   * @param axes: Order of axes corresponding to the qubits of the matrix. Must
+   * satisfy matrix.size() == 2^axes.size()
  * */
   void apply(qsim::Matrix<fp_type>& matrix,
              std::vector<std::string>& axes) {
 
-    auto qubits = qubits_vec(axes);
+    auto qubits = qubits_vec(axes, true);
 
-    // qubits must be in increasing order in order to apply the matrix
-    // correctly. To account for this we need to permute the qubits and
+    // qubits must be in decreasing (qsim reverse) order in order to apply the
+    // matrix correctly. To account for this we need to permute the qubits and
     // accordingly permute the matrix.
-    std::vector<unsigned> perm = NormalToGateOrderPermutation(qubits);
-    MatrixShuffle(perm, qubits.size(), matrix);
+    std::vector<unsigned> perm = qsim::NormalToGateOrderPermutation(qubits);
+    if (!perm.empty()) { //Only permute if permutation is non-trivial.
+      qsim::MatrixShuffle(perm, qubits.size(), matrix);
+      //Also permute axes;
+      std::vector<std::string> new_axes;
+      auto size = axes.size();
 
+      new_axes.reserve(size);
+      // perm was defined for qubits in reverse order, so we reverse axes then
+      // apply the reversed permutation... Is this right?
+      std::reverse(axes.begin(), axes.end());
+      for (const auto& ind :perm) new_axes.push_back(axes[size - 1 - ind]);
+      axes = std::move(new_axes);
 
+    }
 
-
-    // Apply gate
+    // Now we can finally apply the matrix
     auto state = active_state();
-    active_simulator().ApplyGate(qubits, matrix, state);
+    active_simulator().ApplyGate(qubits, matrix.data(), state);
   }
 
   double norm_squared() {
