@@ -27,7 +27,9 @@ inline void sample_op(KOperation<fp_type>& op,
   //Extract conditional channel given current registers
   auto channel = op.channel_at(registers);
 
-  tmp_state.copy_from(k_state);
+  //Only need to record a copy if more than one operator may be sampled.
+  if (channel.size() > 1)
+    tmp_state.copy_from(k_state);
   unsigned k_ind = 0;
   double norm2;
 

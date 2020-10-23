@@ -27,8 +27,13 @@ int main() {
   using fp_type = Simulator::fp_type;
   using complex_type = complex<fp_type>;
 
+  random_device rd;
+  std::mt19937 rgen(rd());
+  unordered_map<string, size_t> registers;
+
   vector<string> axis_labels = {"a", "b"};
   KState<Simulator> k_state(3, 3, axis_labels);
+  KState<Simulator> tmp_state(k_state);
 
   for (const auto& axis :axis_labels) {
     cout << "qubits assigned to " << axis << ": ";
@@ -45,24 +50,28 @@ int main() {
   KOperator<fp_type> q_op{{sqrt_half, 0, 0, 0, sqrt_half, 0, 0, 0},
                           {"c"}, {"c"}, {}, {}, {}};
 
-  for (const auto& ax: q_op.added_axes) k_state.add_qubit(ax);
-  k_state.permute_and_apply(q_op.matrix, q_op.qubit_axes);
+  auto prep_c = KOperation<fp_type>::unconditioned({q_op});
+  double cutoff = qsim::RandomValue(rgen, 1.0);
+  sample_op(prep_c, k_state, tmp_state, registers, cutoff);
 
   cout << "after setting c in plus state:\n";
   k_state.print_amplitudes();
 
   //Apply CNOT between c and b
-  qsim::Matrix<fp_type> CNOT_mat{1, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 1, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 1, 0,
-                                 0, 0, 0, 0, 1, 0, 0, 0};
-  vector<string> axes{"c", "b"};
-  k_state.permute_and_apply(CNOT_mat, axes);
+  KOperator<fp_type> CNOT_op{{1, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 1, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 1, 0,
+                              0, 0, 0, 0, 1, 0, 0, 0},
+                             {}, {"c", "b"}, {}, {},
+                             {}};
+  auto CNOT = KOperation<fp_type>::unconditioned({CNOT_op});
+
+  cutoff = qsim::RandomValue(rgen, 1.0);
+  sample_op(CNOT, k_state, tmp_state, registers, cutoff);
 
   cout << "After CNOT from c to b\n";
   k_state.print_amplitudes();
 
-  KState<Simulator> tmp_state(k_state);
   // Measure b in + basis stochastically.
   KOperator<fp_type>
       q_op0{{sqrt_half, 0, sqrt_half, 0, 0, 0, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
@@ -74,20 +83,16 @@ int main() {
                                                true,
                                                "measure b",
                                                false);
-  unordered_map<string, size_t> registers;
 
-  random_device rd;
-  std::mt19937 rgen(rd());
-  double cutoff = qsim::RandomValue(rgen, 1.0);
+
 
   // Do sampling
   sample_op(op, k_state, tmp_state, registers, cutoff);
 
-  cout << "final registers:\n";
+  cout << "after measuring b in the X basis\n";
+  cout << "registers:\n";
   for (const auto& key_val: registers)
     cout << key_val.first << ": " << key_val.second << endl;
-
-  cout << "final amplitudes:\n";
   k_state.print_amplitudes();
 
   return 0;
