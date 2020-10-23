@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 #include <k_ops.h>
+#include <c_ops.h>
 #include "include/state_rep.h"
 #include "include/sampling.h"
 
@@ -70,9 +71,10 @@ int main() {
       q_op1
       {{sqrt_half, 0, -sqrt_half, 0, 0, 0, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
 
+  string m_label = "measure b";
   auto measure_b = KOperation<fp_type>::unconditioned({q_op0, q_op1},
                                                       true,
-                                                      "measure b",
+                                                      m_label,
                                                       false);
 
   cutoff = qsim::RandomValue(rgen, 1.0);
@@ -96,12 +98,39 @@ int main() {
   //X on c conditioned on b measurement outcome
   KOperator<fp_type> Xc{{0, 0, 1, 0, 1, 0, 0, 0}, {}, {"c"}, {}, {}, {}};
   KOperation<fp_type>::ChannelMap map{{{0}, {}}, {{1}, {Xc}}};
-  KOperation<fp_type> conditional_flip{map, {"measure b"}};
+  KOperation<fp_type> conditional_flip{map, {m_label}};
 
   cutoff = qsim::RandomValue(rgen, 1.0);
   sample_op(conditional_flip, k_state, tmp_state, registers, cutoff);
-  cout<<"after conditional flip of c\n";
+  cout << "after conditional flip of c\n";
   k_state.print_amplitudes();
+
+  // Create a new register
+  string reg = "register";
+  COperation c_op(COperator{{{{}, {1}}}, {}, {reg}, {reg}});
+  c_op.validate();
+  c_op.apply(registers, 0);
+  cout << "created a new register named " << reg << endl;
+  cout << "registers:\n";
+  for (const auto& key_val: registers)
+    cout << key_val.first << ": " << key_val.second << endl;
+
+  //Probabilisticaly flip the register if measure_b is 1
+  COperator flip_reg{{{{1}, {0}}, {{0}, {1}}}, {reg}, {reg}, {}};
+  COperator nothing{{}, {}, {}, {}};
+  CChannel pflip_reg{{nothing, flip_reg}, {0.5, 0.5}};
+  CChannel nothing_c{{}, {}};
+  COperation::ChannelMap channels{{{0}, nothing_c},
+                                  {{1}, pflip_reg}};
+  COperation pflip_cond(channels, {m_label}, false);
+  pflip_cond.validate();
+
+  cout << "Probabilistically flipping register if " << m_label << " is 1\n";
+  cutoff = qsim::RandomValue(rgen, 1.0);
+  pflip_cond.apply(registers, cutoff);
+  cout << "registers:\n";
+  for (const auto& key_val: registers)
+    cout << key_val.first << ": " << key_val.second << endl;
 
   return 0;
 }
