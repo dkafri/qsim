@@ -5,6 +5,9 @@
 #include <random>
 #include <k_ops.h>
 #include "include/state_rep.h"
+#include "include/k_ops.h"
+#include "include/sampling.h"
+
 #include "../lib/formux.h"
 #include "../lib/simmux.h"
 
@@ -66,51 +69,24 @@ int main() {
   KOperator<fp_type>
       q_op1
       {{sqrt_half, 0, -sqrt_half, 0, 0, 0, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
-  KChannel<fp_type> channel{q_op0, q_op1};
 
-  unsigned k_ind = 0;
-  double norm2;
+  auto op = KOperation<fp_type>::unconditioned({q_op0, q_op1},
+                                               true,
+                                               "measure b",
+                                               false);
+  unordered_map<string, size_t> registers;
+
   random_device rd;
   std::mt19937 rgen(rd());
   double cutoff = qsim::RandomValue(rgen, 1.0);
 
-  for (auto& k_op : channel) {
-    //Add required axes
-    for (const auto& ax: k_op.added_axes) {
-      k_state.add_qubit(ax);
-      tmp_state.add_qubit(ax);
-    }
+  // Do sampling
+  sample_op(op, k_state, tmp_state, registers, cutoff);
 
-    //Permute and apply matrix
-    k_state.permute_and_apply(k_op.matrix, k_op.qubit_axes);
+  cout << "final registers:\n";
+  for (const auto& key_val: registers)
+    cout << key_val.first << ": " << key_val.second << endl;
 
-    norm2 = k_state.norm_squared();
-    cout << "sampling norm: " << norm2 << endl;
-    cutoff -= norm2;
-    if (cutoff < 0) { // operator sampled
-      // Apply swaps
-      for (auto ii = 0; ii < k_op.swap_sources.size(); ii++) {
-        k_state.transfer_qubits(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
-      }
-      // Remove axes
-      k_state.remove_qubits_of(k_op.removed_axes);
-      //Normalize
-      k_state.rescale(1 / sqrt(norm2));
-
-      break;
-    }
-    // Operator not sampled -> backtrack. Copy original vector before
-    // removing qubits. We need to do this because the removed qubits must be
-    // in the zero state before they are removed.
-    k_state.copy_from(tmp_state);
-    // Qubit removal is free because the added qubits are in the end.
-    k_state.remove_qubits_of(k_op.added_axes);
-    tmp_state.remove_qubits_of(k_op.added_axes);
-    k_ind++;
-
-  }
-
-  cout << "sampled index: " << k_ind << endl;
   cout << "final amplitudes:\n";
   k_state.print_amplitudes();
 
