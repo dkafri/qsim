@@ -155,6 +155,48 @@ void test_qubits_vec() {
 
 }
 
+void test_apply_matrix() {
+  KState<Simulator> k_state(3, 5, vector<string>{"c", "b"});
+
+  //X on C
+  qsim::Matrix<Simulator::fp_type> X{0, 0, 1, 0, 1, 0, 0, 0};
+  vector<string> axes{"c"};
+  k_state.apply(X, axes);
+  //State |10> (|01> in reverse order)
+  Complex one{1};
+  auto state = k_state.active_state();
+  TEST_CHECK(equals(Simulator::StateSpace::GetAmpl(state, 1), one));
+  //CNOT
+  qsim::Matrix<Simulator::fp_type> matrix{1, 0, 0, 0, 0, 0, 0, 0,
+                                          0, 0, 1, 0, 0, 0, 0, 0,
+                                          0, 0, 0, 0, 0, 0, 1, 0,
+                                          0, 0, 0, 0, 1, 0, 0, 0};
+
+  axes = {"c", "b"};
+  k_state.apply(matrix, axes);
+
+//  Axis order differs from reverse qubit order, expect change in matrix/axes
+  TEST_CHECK(equals(axes, vector<string>{"b", "c"}));
+
+  state = k_state.active_state();
+  // |10> CNOT-> |11>
+  TEST_CHECK(equals(Simulator::StateSpace::GetAmpl(state, 3), one));
+
+  matrix = {1, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 1, 0, 0, 0}; // undo permutation, but axes has changed
+
+  k_state.apply(matrix, axes);
+
+  // Axis now matches reverse qubit order, expect no change in axes
+  TEST_CHECK(equals(axes, vector<string>{"b", "c"}));
+  // |11> CNOT-> |01> (|10> in reverse order)
+  state = k_state.active_state();
+  TEST_CHECK(equals(Simulator::StateSpace::GetAmpl(state, 2), one));
+
+}
+
 void test_kstate_copy_from() {
   KState<Simulator> k_state(3, 5, vector<string>{});
 
@@ -276,6 +318,7 @@ TEST_LIST = {
     {"transfer qubits", test_kstate_transfer_qubits},
     {"remove multiple qubits", test_remove_qubits_of},
     {"qubits vector", test_qubits_vec},
+    {"apply matrix", test_apply_matrix},
     {nullptr, nullptr} // Required final element
 };
 #endif
