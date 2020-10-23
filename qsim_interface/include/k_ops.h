@@ -43,9 +43,9 @@ struct KOperator {
 
   MatrixType matrix; /** Square matrix representation of a Kraus operator.*/
   std::vector<std::string> added_axes; /** Which elements of qubit_axes need 
- * qubit allocations before applying the matrix. All elements must elements of 
- * qubit_axes and should appear the same number of times. A qubit is added to an
- * axis once for each time it appears.*/
+ * qubit allocations before applying the matrix. All elements must be elements
+ * of qubit_axes and should appear the same number of times. A qubit is added
+ * to an axis once for each time it appears.*/
   std::vector<std::string> qubit_axes; /**
  * Axes associated with each qubit of the row/matrix multi-index. Axes should be
  * included as many times as qubits they require.*/
@@ -75,7 +75,7 @@ struct KOperator {
         swap_sinks(swap_sinks),
         removed_axes(removed_axes) {
     //Validation
-    assert(powl(2, 2 * qubit_axes.size()) == matrix.size());
+    assert(powl(2, 1 + 2 * qubit_axes.size()) == matrix.size());
     // Elements of added_axes must be in qubit_axes an appropriate number of 
     // times.
     size_t count;

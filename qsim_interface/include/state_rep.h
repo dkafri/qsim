@@ -19,6 +19,11 @@
 #include "../../lib/gates_cirq.h"
 #include "k_ops.h"
 
+template<typename fp_type>
+inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
+                                    qsim::Matrix<fp_type>& matrix,
+                                    std::vector<std::string>& qubit_axes);
+
 /* Data representation of a state vector with variable axis dimensions.
  *
  * This class allows for tracking and update of state tensor axis labels,
@@ -327,46 +332,46 @@ class KState {
     return out;
   }
 
-  /** Apply a matrix to the specified axes.
-   *
-   * @param matrix: Square matrix (array of array, complex float type) to apply
-   *     to the state.
-   * @param axes: Order of axes corresponding to the qubits of the matrix.
-   *     Must satisfy matrix.size() == 2^axes.size()
-   * */
-  void apply(const qsim::Cirq::Matrix2q<fp_type>& matrix,
-             const std::vector<std::string>& axes) {
+//  /** Apply a matrix to the specified axes.
+//   *
+//   * @param matrix: Square matrix (array of array, complex float type) to apply
+//   *     to the state.
+//   * @param axes: Order of axes corresponding to the qubits of the matrix.
+//   *     Must satisfy matrix.size() == 2^axes.size()
+//   * */
+//  void apply(const qsim::Cirq::Matrix2q<fp_type>& matrix,
+//             const std::vector<std::string>& axes) {
+//
+//
+//    // Create appropriate gate structure matching qubit ordering.
+//    auto qubits = qubits_vec(axes);
+//    assert(qubits.size() == 2);
+//    auto gate = qsim::Cirq::MatrixGate2<fp_type>::Create(0,
+//                                                         qubits[0],
+//                                                         qubits[1],
+//                                                         matrix);
+//    // Apply gate
+//    auto state = active_state();
+//    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
+//  }
 
-
-    // Create appropriate gate structure matching qubit ordering.
-    auto qubits = qubits_vec(axes);
-    assert(qubits.size() == 2);
-    auto gate = qsim::Cirq::MatrixGate2<fp_type>::Create(0,
-                                                         qubits[0],
-                                                         qubits[1],
-                                                         matrix);
-    // Apply gate
-    auto state = active_state();
-    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
-  }
-
-  /** Apply a matrix to the specified axes.
- *
- * @param matrix: Square matrix (array of array, complex float type) to apply
- *     to the state.
- * @param axes: Order of axes corresponding to the qubits of the matrix.
- *     Must satisfy matrix.size() == 2^axes.size(). Repeats are possible.
- * */
-  void apply(const qsim::Cirq::Matrix1q<fp_type>& matrix,
-             const std::vector<std::string>& axes) {
-    // Create appropriate gate structure matching qubit ordering.
-    auto qubits = qubits_vec(axes);
-    assert(qubits.size() == 1);
-    auto gate = qsim::Cirq::MatrixGate1<fp_type>::Create(0, qubits[0], matrix);
-    // Apply gate
-    auto state = active_state();
-    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
-  }
+//  /** Apply a matrix to the specified axes.
+// *
+// * @param matrix: Square matrix (array of array, complex float type) to apply
+// *     to the state.
+// * @param axes: Order of axes corresponding to the qubits of the matrix.
+// *     Must satisfy matrix.size() == 2^axes.size(). Repeats are possible.
+// * */
+//  void apply(const qsim::Cirq::Matrix1q<fp_type>& matrix,
+//             const std::vector<std::string>& axes) {
+//    // Create appropriate gate structure matching qubit ordering.
+//    auto qubits = qubits_vec(axes);
+//    assert(qubits.size() == 1);
+//    auto gate = qsim::Cirq::MatrixGate1<fp_type>::Create(0, qubits[0], matrix);
+//    // Apply gate
+//    auto state = active_state();
+//    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
+//  }
 
   /** Permute and apply a matrix to the specified axes.
    *
@@ -375,34 +380,13 @@ class KState {
    * @param axes: Order of axes corresponding to the qubits of the matrix. Must
    * satisfy matrix.size() == 2^axes.size()
  * */
-  void apply(qsim::Matrix<fp_type>& matrix,
-             std::vector<std::string>& axes) {
+  void permute_and_apply(qsim::Matrix<fp_type>& matrix,
+                         std::vector<std::string>& axes) {
 
     // Qubits for each axis, in reverse order to account for qsim representation
     auto qubits = qubits_vec(axes, true);
 
-    // qubits must be in increasing order in order to apply the matrix
-    // correctly. To account for this we need to permute the qubits and
-    // accordingly permute the matrix.
-    std::vector<unsigned> perm = qsim::NormalToGateOrderPermutation(qubits);
-    if (!perm.empty()) { //Only permute if permutation is non-trivial.
-      // Apply swaps to the matrix that reorders qubits
-      qsim::MatrixShuffle(perm, qubits.size(), matrix);
-      std::sort(qubits.begin(), qubits.end());
-
-      //Also permute axes. These are in reverse order.
-      std::vector<std::string> new_axes;
-      auto size = axes.size();
-
-      new_axes.reserve(size);
-      // perm was defined for qubits in reverse order, so we reverse axes first,
-      // apply the permutation, then reverse back.
-      std::reverse(axes.begin(), axes.end());
-      for (const auto& ind :perm) new_axes.push_back(axes[ind]);
-      std::reverse(new_axes.begin(), new_axes.end());
-      axes = std::move(new_axes);
-
-    }
+    match_to_reverse_qubits(qubits, matrix, axes);
 
     // Now we can finally apply the matrix
     auto state = active_state();
@@ -436,5 +420,43 @@ template<typename Simulator>
 const std::vector<typename KState<Simulator>::fp_type>
     KState<Simulator>::swap_matrix =
     qsim::Cirq::SWAP<KState::fp_type>::Create(0, 0, 1).matrix;
+
+/** Apply required axis and matrix permutations to bring the matrix to
+ * qsim normal order.
+ *
+ * This function does nothing if the axes are already in reverse qubit order.
+ * If they are not, then we apply swap gates to the matrix and permute the
+ * corresponding qubit_axes (and the qubits vector so that it is ascending).
+ *
+ * @param qubits: The qubits assigned to each of qubit_axes, in reverse
+ *     order.
+ * */
+template<typename fp_type>
+inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
+                                    qsim::Matrix<fp_type>& matrix,
+                                    std::vector<std::string>& qubit_axes) {
+
+  // qubits must be in increasing order in order to apply the matrix
+  // correctly. To account for this we need to permute the qubits and
+  // accordingly permute the matrix.
+  std::vector<unsigned> perm = qsim::NormalToGateOrderPermutation(qubits);
+  if (!perm.empty()) { //Only permute if permutation is non-trivial.
+    // Apply swaps to the matrix that reorders qubits
+    qsim::MatrixShuffle(perm, qubits.size(), matrix);
+    std::sort(qubits.begin(), qubits.end());
+
+    //Also permute axes. These are in reverse order.
+    std::vector<std::string> new_axes;
+    auto size = qubit_axes.size();
+
+    new_axes.reserve(size);
+    // perm was defined for qubits in reverse order, so we reverse axes first,
+    // apply the permutation, then reverse back.
+    std::reverse(qubit_axes.begin(), qubit_axes.end());
+    for (const auto& ind :perm) new_axes.push_back(qubit_axes[ind]);
+    std::reverse(new_axes.begin(), new_axes.end());
+    qubit_axes = std::move(new_axes);
+  }
+}
 
 #endif //PROTOTYPE_STATE_REP_H_
