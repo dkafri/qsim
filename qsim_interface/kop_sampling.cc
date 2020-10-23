@@ -44,7 +44,7 @@ int main() {
 
   auto prep_c = KOperation<fp_type>::unconditioned({q_op});
   double cutoff = qsim::RandomValue(rgen, 1.0);
-  sample_op(prep_c, k_state, tmp_state, registers, cutoff);
+  sample_kop(prep_c, k_state, tmp_state, registers, cutoff);
 
   cout << "after setting c in plus state:\n";
   k_state.print_amplitudes();
@@ -59,7 +59,7 @@ int main() {
   auto CNOT = KOperation<fp_type>::unconditioned({CNOT_op});
 
   cutoff = qsim::RandomValue(rgen, 1.0);
-  sample_op(CNOT, k_state, tmp_state, registers, cutoff);
+  sample_kop(CNOT, k_state, tmp_state, registers, cutoff);
 
   cout << "After CNOT from c to b\n";
   k_state.print_amplitudes();
@@ -78,7 +78,7 @@ int main() {
                                                       false);
 
   cutoff = qsim::RandomValue(rgen, 1.0);
-  sample_op(measure_b, k_state, tmp_state, registers, cutoff);
+  sample_kop(measure_b, k_state, tmp_state, registers, cutoff);
 
   cout << "after measuring b in the X basis\n";
   cout << "registers:\n";
@@ -91,7 +91,7 @@ int main() {
                           sqrt_half, 0, -sqrt_half, 0}, {}, {"c"}, {}, {}, {}};
   auto H = KOperation<fp_type>::unconditioned({Hop});
   cutoff = qsim::RandomValue(rgen, 1.0);
-  sample_op(H, k_state, tmp_state, registers, cutoff);
+  sample_kop(H, k_state, tmp_state, registers, cutoff);
   cout << "after H on c\n";
   k_state.print_amplitudes();
 
@@ -101,7 +101,7 @@ int main() {
   KOperation<fp_type> conditional_flip{map, {m_label}};
 
   cutoff = qsim::RandomValue(rgen, 1.0);
-  sample_op(conditional_flip, k_state, tmp_state, registers, cutoff);
+  sample_kop(conditional_flip, k_state, tmp_state, registers, cutoff);
   cout << "after conditional flip of c\n";
   k_state.print_amplitudes();
 

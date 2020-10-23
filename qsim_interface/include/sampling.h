@@ -18,11 +18,11 @@
  * @param cutoff: Random number between 0 and 1 used for sampling.
  * */
 template<typename Simulator, typename fp_type>
-inline void sample_op(KOperation<fp_type>& op,
-                      KState<Simulator>& k_state,
-                      KState<Simulator>& tmp_state,
-                      std::unordered_map<std::string, size_t>& registers,
-                      double cutoff) {
+inline void sample_kop(KOperation<fp_type>& op,
+                       KState<Simulator>& k_state,
+                       KState<Simulator>& tmp_state,
+                       std::unordered_map<std::string, size_t>& registers,
+                       double cutoff) {
 
   //Extract conditional channel given current registers
   auto channel = op.channel_at(registers);
