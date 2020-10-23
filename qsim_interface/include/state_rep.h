@@ -378,23 +378,28 @@ class KState {
   void apply(qsim::Matrix<fp_type>& matrix,
              std::vector<std::string>& axes) {
 
+    // Qubits for each axis, in reverse order to account for qsim representation
     auto qubits = qubits_vec(axes, true);
 
-    // qubits must be in decreasing (qsim reverse) order in order to apply the
-    // matrix correctly. To account for this we need to permute the qubits and
+    // qubits must be in increasing order in order to apply the matrix
+    // correctly. To account for this we need to permute the qubits and
     // accordingly permute the matrix.
     std::vector<unsigned> perm = qsim::NormalToGateOrderPermutation(qubits);
     if (!perm.empty()) { //Only permute if permutation is non-trivial.
+      // Apply swaps to the matrix that reorders qubits
       qsim::MatrixShuffle(perm, qubits.size(), matrix);
-      //Also permute axes;
+      std::sort(qubits.begin(), qubits.end());
+
+      //Also permute axes. These are in reverse order.
       std::vector<std::string> new_axes;
       auto size = axes.size();
 
       new_axes.reserve(size);
-      // perm was defined for qubits in reverse order, so we reverse axes then
-      // apply the reversed permutation... Is this right?
+      // perm was defined for qubits in reverse order, so we reverse axes first,
+      // apply the permutation, then reverse back.
       std::reverse(axes.begin(), axes.end());
-      for (const auto& ind :perm) new_axes.push_back(axes[size - 1 - ind]);
+      for (const auto& ind :perm) new_axes.push_back(axes[ind]);
+      std::reverse(new_axes.begin(), new_axes.end());
       axes = std::move(new_axes);
 
     }
