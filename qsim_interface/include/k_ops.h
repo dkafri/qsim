@@ -11,6 +11,7 @@
 #include <gates_cirq.h>
 #include <cassert>
 #include <unordered_map>
+#include <map>
 
 /** Representation of a Kraus operator as a square qubit matrix.
  *
@@ -112,43 +113,43 @@ template<typename fp_type>
 using KChannel = std::vector<KOperator<fp_type>>;
 
 ///** Representation of a KrausOperation*/
-//template<typename fp_type, size_t num_qubits>
-//struct KOperation {
-//  using KChannel = KChannel<fp_type, num_qubits>;
-//
-//  std::unordered_map<const std::vector<size_t>, KChannel>
-//      channels; /** Mapping between conditional register values and corresponding channels.*/
-//  std::vector<std::string> conditional_registers; /**
-// * Classical registers on which the operation is conditioned. Each key of
-// * channels should have the same length as conditional_registers. The
-// * register values are referenced in the specified order.*/
-//  bool is_measurement = false; /** Whether operation is a measurement.
-// * Sampled measurements are recorded as classical registers.*/
-//  std::string label = "unlabeled operation"; /** Operation label. If this
-// * operation is a measurement, a register with this label is created when
-// * this operation is sampled.*/
-//  bool is_virtual = false; /** Whether the operation is virtual. Virtual
-// * operations have a temporary effect on the simulation and are back-tracked
-// * when a non-virtual operation is met.*/
-//
-//  /** Return the channel conditioned on current values of classical registers.*/
-//  KChannel channel_at(std::unordered_map<std::string, size_t>& registers) {
-//    std::vector<size_t> reg_vals;
-//    for (const auto& reg : conditional_registers) {
-//      reg_vals.push_back(registers.at(reg));
-//    }
-//    return channels.at(reg_vals);
-//  }
-//
-//  /** Construct a KOperation without conditional registers. */
-//  static KOperation unconditioned(const std::vector<KChannel>& channel,
-//                                  bool is_measurement = false,
-//                                  bool is_virtual = false) {
-//    std::unordered_map<const std::vector<size_t>, KChannel> channels;
-//    channels.emplace({}, channel);
-//    return KOperation<fp_type, num_qubits>{channels, {}, is_measurement,
-//                                           is_virtual};
-//  }
-//};
+template<typename fp_type>
+struct KOperation {
+  using ChannelMap=std::map<std::vector<size_t>, KChannel<fp_type>>;
+  ChannelMap channels; /** Mapping between conditional register values and 
+ * corresponding channels.*/
+  std::vector<std::string> conditional_registers; /**
+ * Classical registers on which the operation is conditioned. Each key of
+ * channels should have the same length as conditional_registers. The
+ * register values are referenced in the specified order.*/
+  bool is_measurement = false; /** Whether operation is a measurement.
+ * Sampled measurements are recorded as classical registers.*/
+  std::string label = "unlabeled operation"; /** Operation label. If this
+ * operation is a measurement, a register with this label is created when
+ * this operation is sampled.*/
+  bool is_virtual = false; /** Whether the operation is virtual. Virtual
+ * operations have a temporary effect on the simulation and are back-tracked
+ * when a non-virtual operation is met.*/
+
+
+  /** Return the channel conditioned on current values of classical registers.*/
+  KChannel<fp_type> channel_at(std::unordered_map<std::string,
+                                                  size_t>& registers) {
+    std::vector<size_t> reg_vals;
+    for (const auto& reg : conditional_registers) {
+      reg_vals.push_back(registers.at(reg));
+    }
+    return channels.at(reg_vals);
+  }
+
+  /** Construct a KOperation without conditional registers. */
+  static KOperation unconditioned(KChannel<fp_type>&& channel,
+                                  bool is_measurement = false,
+                                  const std::string& label = "unlabeled op",
+                                  bool is_virtual = false) {
+    ChannelMap channels{{{}, std::move(channel)}};
+    return KOperation<fp_type>{channels, {}, is_measurement, label, is_virtual};
+  }
+};
 
 #endif //PROTOTYPE_INCLUDE_Q_OPS_H_

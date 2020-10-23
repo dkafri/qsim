@@ -17,7 +17,6 @@
 #include <unordered_set>
 #include "../../lib/matrix.h"
 #include "../../lib/gates_cirq.h"
-#include "k_ops.h"
 
 template<typename fp_type>
 inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
