@@ -122,10 +122,9 @@ struct KOperation {
  * Classical registers on which the operation is conditioned. Each key of
  * channels should have the same length as conditional_registers. The
  * register values are referenced in the specified order.*/
-  bool is_measurement = false; /** Whether operation is a measurement.
- * Sampled measurements are recorded as classical registers.*/
+  bool is_recorded = false; /** Whether sampling result should be recorded.*/
   std::string label = "unlabeled operation"; /** Operation label. If this
- * operation is a measurement, a register with this label is created when
+ * operation is recorded, a register with this label is created when
  * this operation is sampled.*/
   bool is_virtual = false; /** Whether the operation is virtual. Virtual
  * operations have a temporary effect on the simulation and are back-tracked
