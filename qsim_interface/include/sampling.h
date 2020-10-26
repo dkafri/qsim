@@ -8,6 +8,8 @@
 #include "k_ops.h"
 #include "state_rep.h"
 
+using RegisterMap=std::unordered_map<std::string, size_t>;
+
 /** \brief Sample a KOperation on a state.
  *
  * @param op: The KOperation to sample from.
@@ -21,7 +23,7 @@ template<typename Simulator, typename fp_type>
 inline void sample_kop(KOperation<fp_type>& op,
                        KState<Simulator>& k_state,
                        KState<Simulator>& tmp_state,
-                       std::unordered_map<std::string, size_t>& registers,
+                       RegisterMap& registers,
                        double cutoff) {
 
   //Extract conditional channel given current registers
@@ -67,8 +69,7 @@ inline void sample_kop(KOperation<fp_type>& op,
     k_ind++;
   }
 
-  //Update registers if operation is a measurement
-  if (op.is_measurement) registers[op.label] = k_ind;
+  if (op.is_recorded) registers[op.label] = k_ind;
 
 };
 
