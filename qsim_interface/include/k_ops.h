@@ -89,10 +89,11 @@ struct KOperator {
     // Elements of swap_sources must be unique and contained in qubit_axes and
     // not overlap with removed_axes.
     for (const auto& axis: swap_sources) {
-      count = std::count(swap_sources.begin(), swap_sources.end(), axis);
+      count = std::count(swap_sources.begin(), sources_end, axis);
       assert(count == 1);
       assert(std::find(qubit_axes.begin(), qaxes_end, axis) != qaxes_end);
-      assert(std::find(swap_sources.begin(), sources_end, axis) == sources_end);
+      assert(std::find(removed_axes.begin(), removed_axes.end(), axis)
+                 == removed_axes.end());
     }
 
     // Elements of removed_axes must be unique and contained in qubit_axes
@@ -143,11 +144,11 @@ struct KOperation {
 
   /** Construct a KOperation without conditional registers. */
   static KOperation unconditioned(KChannel<fp_type>&& channel,
-                                  bool is_measurement = false,
+                                  bool is_recorded = false,
                                   const std::string& label = "unlabeled op",
                                   bool is_virtual = false) {
     ChannelMap channels{{{}, std::move(channel)}};
-    return KOperation<fp_type>{channels, {}, is_measurement, label, is_virtual};
+    return KOperation<fp_type>{channels, {}, is_recorded, label, is_virtual};
   }
 };
 
