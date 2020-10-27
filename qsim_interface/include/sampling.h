@@ -5,8 +5,11 @@
 #ifndef QSIM_INTERFACE_INCLUDE_SAMPLING_H_
 #define QSIM_INTERFACE_INCLUDE_SAMPLING_H_
 
+#include <util.h>
 #include "k_ops.h"
 #include "state_rep.h"
+#include "c_ops.h"
+#include "variant.hpp"
 
 using RegisterMap=std::unordered_map<std::string, size_t>;
 
@@ -20,11 +23,11 @@ using RegisterMap=std::unordered_map<std::string, size_t>;
  * @param cutoff: Random number between 0 and 1 used for sampling.
  * */
 template<typename Simulator, typename fp_type>
-inline void sample_kop(KOperation<fp_type>& op,
-                       KState<Simulator>& k_state,
-                       KState<Simulator>& tmp_state,
-                       RegisterMap& registers,
-                       double cutoff) {
+static inline void sample_kop(KOperation<fp_type>& op,
+                              KState<Simulator>& k_state,
+                              KState<Simulator>& tmp_state,
+                              RegisterMap& registers,
+                              double cutoff) {
 
   //Extract conditional channel given current registers
   auto channel = op.channel_at(registers);
@@ -71,6 +74,34 @@ inline void sample_kop(KOperation<fp_type>& op,
 
   if (op.is_recorded) registers[op.label] = k_ind;
 
-};
+}
+
+/** Variant type for classical and quantum operations.*/
+template<typename fp_type>
+using Operation = mpark::variant<COperation, KOperation<fp_type>>;
+
+/** Apply a classical or quantum sampling operation.*/
+template<typename fp_type, typename Simulator>
+inline void sample_op(Operation<fp_type>& op,
+                      KState<Simulator>& k_state,
+                      KState<Simulator>& tmp_state,
+                      RegisterMap& registers,
+                      double cutoff) {
+  if (mpark::holds_alternative<COperation>(op)) {
+    const auto& c_op = mpark::get<COperation>(op);
+    c_op.apply(registers, cutoff);
+  } else if (mpark::holds_alternative<KOperation<fp_type>>(op)) {
+    auto& k_op = mpark::get<KOperation<fp_type>>(op);
+    sample_kop(k_op, k_state, tmp_state, registers, cutoff);
+  }
+
+}
+
+
+
+
+
+
+
 
 #endif //QSIM_INTERFACE_INCLUDE_SAMPLING_H_
