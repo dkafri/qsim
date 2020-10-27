@@ -17,7 +17,6 @@ int main() {
 
   using Simulator = qsim::Simulator<qsim::For>;
   using fp_type = Simulator::fp_type;
-  using complex_type = complex<fp_type>;
   using Operation = Operation<fp_type>;
 
   random_device rd;
