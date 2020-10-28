@@ -13,6 +13,9 @@ add_executable(kop_sampling_sequence kop_sampling_sequence.cc)
 
 
 ## Include pybind11
+# To be able to use pybind, we also need to add it as a "submodule" as defined
+# here:
+# https://pybind11.readthedocs.io/en/stable/installing.html
 include(FetchContent)
 
 FetchContent_Declare(
