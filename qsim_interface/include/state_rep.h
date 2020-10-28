@@ -260,6 +260,14 @@ class KState {
 
   }
 
+#ifdef DEBUG_SAMPLING
+  void print_qubit_axes() {
+    for (const auto& ax: qubit_axis)
+      std::cout << "(" << ax  << "),";
+    std::cout << std::endl;
+  }
+#endif
+
   /** Rescale the state vector by a constant.*/
   void rescale(double scale) {
     auto state = active_state();
