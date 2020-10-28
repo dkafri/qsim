@@ -90,18 +90,118 @@ inline void sample_op(Operation<fp_type>& op,
   if (mpark::holds_alternative<COperation>(op)) {
     const auto& c_op = mpark::get<COperation>(op);
     c_op.apply(registers, cutoff);
+#ifdef DEBUG_SAMPLING
+    std::cout << "new register values:\n";
+    for (const auto& k_v: registers)
+      std::cout << k_v.first << ": " << k_v.second << std::endl;
+#endif
   } else if (mpark::holds_alternative<KOperation<fp_type>>(op)) {
     auto& k_op = mpark::get<KOperation<fp_type>>(op);
     sample_kop(k_op, k_state, tmp_state, registers, cutoff);
+#ifdef DEBUG_SAMPLING
+    std::cout << "quantum state after " << k_op.label << std::endl;
+    k_state.print_amplitudes();
+    std::cout << "qubit axes: ";
+    k_state.print_qubit_axes();
+#endif
   }
-
 }
 
+/** Whether a classical or quantum operation is virtual.*/
+auto IsVirtual = [](const auto& op) { return op.is_virtual; };
+
+/** \brief Carry out a sequence of sampling operations on a state.
+ *
+ * @param ops - Sequence of operations to sample from.
+ * @param k_state - Initial state of the system. This will store the final
+ * system state at the end of the calculation.
+ * @param tmp_state - State used for working memory. Must have the same capacity
+ * as k_state.
+ * @param init_registers - Initial values assigned to any classical registers.
+ * @param rng - Random number generator.
+ * @param saved_virtuals - Registers that are created or modified by virtual
+ *     operations are only saved if they are in this set. If this set is empty
+ *     then virtual operations are skipped altogether.
+ * */
+template<typename fp_type, typename Simulator>
+RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
+                            KState<Simulator>& k_state,
+                            KState<Simulator>& tmp_state,
+                            const RegisterMap& init_registers,
+                            std::mt19937& rng,
+                            const std::set<std::string>& saved_virtuals) {
+  RegisterMap registers(init_registers);
+  double cutoff;
+
+  if (!saved_virtuals.empty()) { //implementation with virtual operations
+    // Allocated memory for concrete state storage. There may
+    // be some overhead from allocating here instead of at a higher level.
+    KState<Simulator> last_concrete_state(k_state);
+    RegisterMap last_concrete_registers(init_registers);
+
+    std::vector<bool> v_starts(ops.size());
+    std::vector<bool> v_stops(ops.size());
+
+    //determine virtual starts and stops
+    bool last_virtual = false;
+    for (size_t ii = 0; ii < ops.size(); ii++) {
+      const Operation<fp_type>& current_op = ops[ii];
+      bool is_virt = mpark::visit(IsVirtual, ops[ii]);
+      if (is_virt && !last_virtual) {
+        v_starts[ii] = true;
+      }
+      if (!is_virt && last_virtual) {
+        v_stops[ii - 1] = true;
+      }
+      last_virtual = is_virt;
+    }
+    //Last operation a virtual stop if it is virtual
+    v_stops[ops.size() - 1] = mpark::visit(IsVirtual, ops[ops.size() - 1]);
+
+    //Sample each operation
+    for (size_t ii = 0; ii < ops.size(); ii++) {
+
+      if (v_starts[ii]) { // record last concrete state
+        last_concrete_state.copy_from(k_state);
+        last_concrete_registers.clear();
+        for (const auto& k_v : registers)
+          last_concrete_registers.insert(k_v);
+      }
+
+      cutoff = qsim::RandomValue(rng, 1.0);
+      sample_op(ops[ii], k_state, tmp_state, registers, cutoff);
+
+      if (v_stops[ii]) {//revert to last concrete state
+        k_state.copy_from(last_concrete_state);
+        //record only saved_virtuals
+        for (const auto& k_v: registers) {
+          if (saved_virtuals.count(k_v.first))
+            last_concrete_registers[k_v.first] = k_v.second;
+        }
+        registers.clear();
+        for (const auto& k_v:last_concrete_registers)
+          registers.insert(k_v);
+      }
+
+    }
+
+  } else { //implementation without virtual registers
+
+    //Sample each operation. Skip virtual operations.
+    for (auto& op: ops) {
+      if (mpark::visit(IsVirtual, op))
+        continue;
+      cutoff = qsim::RandomValue(rng, 1.0);
+      sample_op(op, k_state, tmp_state, registers, cutoff);
+    }
+  }
+
+  return registers;
 
 
 
+  // determine
 
-
-
+}
 
 #endif //QSIM_INTERFACE_INCLUDE_SAMPLING_H_
