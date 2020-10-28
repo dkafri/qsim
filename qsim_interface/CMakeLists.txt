@@ -10,3 +10,20 @@ add_executable(k_state kstate_example.cc)
 add_executable(tests state_rep_tests.cc)
 add_executable(kop_sampling kop_sampling.cc)
 add_executable(kop_sampling_sequence kop_sampling_sequence.cc)
+
+
+## Include pybind11
+include(FetchContent)
+
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11
+  GIT_TAG v2.2.4
+)
+FetchContent_GetProperties(pybind11)
+if(NOT pybind11_POPULATED)
+  FetchContent_Populate(pybind11)
+  add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+endif()
+
+pybind11_add_module(pybind_example example.cc)
