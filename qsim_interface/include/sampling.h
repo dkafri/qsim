@@ -108,7 +108,12 @@ inline void sample_op(Operation<fp_type>& op,
 }
 
 /** Whether a classical or quantum operation is virtual.*/
-auto IsVirtual = [](const auto& op) { return op.is_virtual; };
+static auto IsVirtual = [](const auto& op) { return op.is_virtual; };
+
+template<typename fp_type>
+static inline bool is_virtual(const Operation<fp_type>& current_op) {
+  return mpark::visit(IsVirtual, current_op);
+}
 
 /** \brief Carry out a sequence of sampling operations on a state.
  *
@@ -146,7 +151,7 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
     bool last_virtual = false;
     for (size_t ii = 0; ii < ops.size(); ii++) {
       const Operation<fp_type>& current_op = ops[ii];
-      bool is_virt = mpark::visit(IsVirtual, ops[ii]);
+      bool is_virt = is_virtual(current_op);
       if (is_virt && !last_virtual) {
         v_starts[ii] = true;
       }
@@ -156,7 +161,7 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
       last_virtual = is_virt;
     }
     //Last operation a virtual stop if it is virtual
-    v_stops[ops.size() - 1] = mpark::visit(IsVirtual, ops[ops.size() - 1]);
+    v_stops[ops.size() - 1] = is_virtual(ops[ops.size() - 1]);
 
     //Sample each operation
     for (size_t ii = 0; ii < ops.size(); ii++) {
