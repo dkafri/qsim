@@ -23,29 +23,25 @@ int main() {
   //Hadamard on "a"
   KOperator<fp_type> H{{sqrt_half, 0, sqrt_half, 0,
                         sqrt_half, 0, -sqrt_half, 0}, {}, {"a"}, {}, {}, {}};
-  ops.emplace_back(KOperation<fp_type>::unconditioned({H}, false, "H->a"));
+  ops.emplace_back(KOperation<fp_type>(H, false, "H->a"));
 
   // Create "b" in + state
 
   KOperator<fp_type>
       k_op{{sqrt_half, 0, 0, 0, sqrt_half, 0, 0, 0}, {"b"}, {"b"}, {}, {}, {}};
-  ops.emplace_back(KOperation<fp_type>::unconditioned({k_op},
-                                                      false,
-                                                      "prep b->+"));
+  ops.emplace_back(KOperation<fp_type>(k_op, false, "prep b->+"));
 
   //CZ between a and b
   KOperator<fp_type> CZ{{1, 0, 0, 0, 0, 0, 0, 0,
                          0, 0, 1, 0, 0, 0, 0, 0,
                          0, 0, 0, 0, 1, 0, 0, 0,
                          0, 0, 0, 0, 0, 0, -1, 0}, {}, {"a", "b"}, {}, {}, {}};
-  ops.emplace_back(KOperation<fp_type>::unconditioned({CZ}, false, "CZ a->b"));
+  ops.emplace_back(KOperation<fp_type>(CZ, false, "CZ a->b"));
 
   //Swap b and c
   KOperator<fp_type> swap{{1, 0, 0, 0,
                            0, 0, 1, 0}, {}, {"b"}, {"b"}, {"c"}, {}};
-  ops.emplace_back(KOperation<fp_type>::unconditioned({swap},
-                                                      false,
-                                                      "swap b->c"));
+  ops.emplace_back(KOperation<fp_type>(swap, false, "swap b->c"));
 
   // Destructively measure c in computational basis
   KOperator<fp_type> meas_0{{1, 0, 0, 0,
@@ -53,12 +49,10 @@ int main() {
   KOperator<fp_type> meas_1{{0, 0, 1, 0,
                              0, 0, 0, 0}, {}, {"c"}, {}, {}, {"c"}};
   auto m_true = "measure c";
-  ops.emplace_back(KOperation<fp_type>::unconditioned({meas_0, meas_1},
-                                                      true,
-                                                      m_true));
+  ops.emplace_back(KOperation<fp_type>({meas_0, meas_1}, true, m_true));
 
   //Add measurement error
-  fp_type p_error = 0.1;
+  double p_error = 0.1;
   string m_observe = "a_observed";
   COperator nothing{{{{0}, {0}},
                      {{1}, {1}}}, {m_true}, {m_observe}, {m_observe}};
@@ -69,20 +63,16 @@ int main() {
   //Virtual Z on "a", then virtual measurement of "a" in X basis
   KOperator<fp_type> VZ{{1, 0, 0, 0,
                          0, 0, -1, 0}, {}, {"a"}, {}, {}, {}};
-  ops.emplace_back(KOperation<fp_type>::unconditioned({VZ},
-                                                      false,
-                                                      "",
-                                                      true));
+  ops.emplace_back(KOperation<fp_type>(VZ, false, "", true));
   KOperator<fp_type> vmeas_0{{sqrt_half, 0, sqrt_half, 0,
                               0, 0, 0, 0}, {}, {"a"}, {}, {}, {"a"}};
   KOperator<fp_type> vmeas_1{{sqrt_half, 0, -sqrt_half, 0,
                               0, 0, 0, 0}, {}, {"a"}, {}, {}, {"a"}};
   string vm_label = "VM:a";
-  ops.emplace_back(KOperation<fp_type>::unconditioned({vmeas_0, vmeas_1},
-                                                      true,
-                                                      vm_label,
-                                                      true));
-
+  ops.emplace_back(KOperation<fp_type>({vmeas_0, vmeas_1},
+                                       true,
+                                       vm_label,
+                                       true));
 
 
   //Run simulation

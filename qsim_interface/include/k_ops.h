@@ -123,11 +123,11 @@ struct KOperation {
  * Classical registers on which the operation is conditioned. Each key of
  * channels should have the same length as conditional_registers. The
  * register values are referenced in the specified order.*/
-  bool is_recorded = false; /** Whether sampling result should be recorded.*/
-  std::string label = "unlabeled operation"; /** Operation label. If this
+  bool is_recorded; /** Whether sampling result should be recorded.*/
+  std::string label; /** Operation label. If this
  * operation is recorded, a register with this label is created when
  * this operation is sampled.*/
-  bool is_virtual = false; /** Whether the operation is virtual. Virtual
+  bool is_virtual; /** Whether the operation is virtual. Virtual
  * operations have a temporary effect on the simulation and are back-tracked
  * when a non-virtual operation is met.*/
 
@@ -142,14 +142,37 @@ struct KOperation {
     return channels.at(reg_vals);
   }
 
-  /** Construct a KOperation without conditional registers. */
-  static KOperation unconditioned(KChannel<fp_type>&& channel,
-                                  bool is_recorded = false,
-                                  const std::string& label = "unlabeled op",
-                                  bool is_virtual = false) {
-    ChannelMap channels{{{}, std::move(channel)}};
-    return KOperation<fp_type>{channels, {}, is_recorded, label, is_virtual};
-  }
+  /** Single operator constructor */
+  explicit KOperation(const KOperator<fp_type>& k_op,
+                      bool is_recorded = false,
+                      std::string label = "unlabeled op",
+                      bool is_virtual = false)
+      : is_virtual(is_virtual),
+        label(std::move(label)),
+        is_recorded(is_recorded),
+        channels{{{}, {k_op}}} {}
+
+  /** Unconditioned operation constructor */
+  explicit KOperation(const KChannel<fp_type>& channel,
+                      bool is_recorded = false,
+                      std::string label = "unlabeled op",
+                      bool is_virtual = false)
+      : is_virtual(is_virtual),
+        label(std::move(label)),
+        is_recorded(is_recorded),
+        channels{{{}, channel}} {}
+
+  /** General constructor with conditional registers*/
+  explicit KOperation(const ChannelMap& channel_map,
+                      std::vector<std::string> conditional_registers,
+                      bool is_recorded = false,
+                      std::string label = "unlabeled op",
+                      bool is_virtual = false)
+      : channels(channel_map),
+        conditional_registers(std::move(conditional_registers)),
+        is_recorded(is_recorded),
+        label(std::move(label)),
+        is_virtual(is_virtual) {}
 };
 
 #endif //PROTOTYPE_INCLUDE_Q_OPS_H_

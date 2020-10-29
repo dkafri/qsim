@@ -42,7 +42,7 @@ int main() {
   KOperator<fp_type> q_op{{sqrt_half, 0, 0, 0, sqrt_half, 0, 0, 0},
                           {"c"}, {"c"}, {}, {}, {}};
 
-  auto prep_c = Operation(KOperation<fp_type>::unconditioned({q_op}));
+  auto prep_c = Operation(KOperation<fp_type>(q_op));
   double cutoff = qsim::RandomValue(rgen, 1.0);
   sample_op(prep_c, k_state, tmp_state, registers, cutoff);
 
@@ -56,7 +56,7 @@ int main() {
                               0, 0, 0, 0, 1, 0, 0, 0},
                              {}, {"c", "b"}, {}, {},
                              {}};
-  auto CNOT = Operation(KOperation<fp_type>::unconditioned({CNOT_op}));
+  auto CNOT = Operation(KOperation<fp_type>(CNOT_op));
 
   cutoff = qsim::RandomValue(rgen, 1.0);
   sample_op(CNOT, k_state, tmp_state, registers, cutoff);
@@ -72,10 +72,11 @@ int main() {
       {{sqrt_half, 0, -sqrt_half, 0, 0, 0, 0, 0}, {}, {"b"}, {}, {}, {"b"}};
 
   string m_label = "measure b";
-  auto measure_b = Operation(KOperation<fp_type>::unconditioned({q_op0, q_op1},
-                                                                true,
-                                                                m_label,
-                                                                false));
+  auto measure_b =
+      Operation(KOperation<fp_type>(KChannel<fp_type>{q_op0, q_op1},
+                                    true,
+                                    m_label,
+                                    false));
 
   cutoff = qsim::RandomValue(rgen, 1.0);
   sample_op(measure_b, k_state, tmp_state, registers, cutoff);
@@ -89,7 +90,7 @@ int main() {
   //Apply H
   KOperator<fp_type> Hop{{sqrt_half, 0, sqrt_half, 0,
                           sqrt_half, 0, -sqrt_half, 0}, {}, {"c"}, {}, {}, {}};
-  auto H = Operation(KOperation<fp_type>::unconditioned({Hop}));
+  auto H = Operation(KOperation<fp_type>(Hop));
   cutoff = qsim::RandomValue(rgen, 1.0);
   sample_op(H, k_state, tmp_state, registers, cutoff);
   cout << "after H on c\n";
