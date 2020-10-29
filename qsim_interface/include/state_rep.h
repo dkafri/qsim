@@ -269,8 +269,8 @@ class KState {
   const static std::vector<fp_type> swap_matrix;
   const unsigned num_threads;
   const unsigned max_qubits;
-  std::unordered_map<std::string, std::list<unsigned>>
-      axis_qubits; /**Qubits allocated to each axis.*/
+  using AxisQubits = std::unordered_map<std::string, std::vector<unsigned>>;
+  AxisQubits axis_qubits; /**Qubits allocated to each axis.*/
   std::vector<std::string>
       qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
 
@@ -283,11 +283,10 @@ class KState {
     return StateSpace(num_threads);
   }
 
-  /** Swap two qubits in the state vector and update axis assignments.
+  /** Swap two qubits in the state vector.
    *
    * @param q0 : Any active qubit index.
-   * @param q1: Another active qubit index. This qubit must be the most recently
-   *     added qubit for its axis.
+   * @param q1: Another active qubit index.
    * */
   inline void swap_qubits(unsigned int q0, unsigned int q1) {
 
@@ -299,13 +298,6 @@ class KState {
 
     auto state = active_state();
     active_simulator().ApplyGate(qubits, swap_matrix.data(), state);
-
-    // Update the axis qubit registry for the axis involved in the swap.
-    std::string axis_1 = qubit_axis[q1];
-    assert(axis_qubits[axis_1].back() == q1); //q1 must be most recently added.
-    axis_qubits[axis_1].pop_back();
-    axis_qubits[axis_1].push_back(q0);
-    qubit_axis[q0] = axis_1;
 
   }
 /** Deallocate a qubit from an axis.
@@ -325,8 +317,17 @@ class KState {
     const unsigned last_active_q = num_active_qubits() - 1;
     const unsigned removed_q = axis_qubits[axis].back();
 
-    if (last_active_q != removed_q)
+    if (last_active_q != removed_q) {
       swap_qubits(removed_q, last_active_q);
+      // Update the axis qubit registry for the axis involved in the swap.
+      std::string axis_1 = qubit_axis[last_active_q];
+      //q1 must be most recently added.
+      assert(axis_qubits[axis_1].back() == last_active_q);
+      axis_qubits[axis_1].pop_back();
+      axis_qubits[axis_1].push_back(removed_q);
+      qubit_axis[removed_q] = axis_1;
+    }
+
 
     // Deallocate the removed qubit.
     axis_qubits[axis].pop_back();
@@ -356,7 +357,7 @@ class KState {
     out.reserve(axes.size());
 
     if (reverse) {
-      using IterType=std::list<unsigned>::const_reverse_iterator;
+      using IterType=AxisQubits::mapped_type::const_reverse_iterator;
 
       std::unordered_map<std::string, IterType> iters;
       IterType iter;
@@ -372,7 +373,7 @@ class KState {
       }
 
     } else {
-      using IterType=std::list<unsigned>::const_iterator;
+      using IterType=AxisQubits::mapped_type::const_iterator;
 
       std::unordered_map<std::string, IterType> iters;
       IterType iter;
