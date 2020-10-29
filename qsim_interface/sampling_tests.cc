@@ -73,6 +73,58 @@ void test_state_creation_destruction() {
   }
 }
 
+void test_conditional_bit_flip() {
+
+  KState<Simulator> k_state(5, 3, vector<string>{"a"});
+
+  vector<Operation<fp_type>> ops;
+
+  RegisterMap init_reg{{"X", 1}};
+
+  //Set classical register Y to 0 or 1 with even odds
+  COperator set_0{{{{}, {0}}}, {}, {"Y"}, {"Y"}};
+  COperator set_1{{{{}, {1}}}, {}, {"Y"}, {"Y"}};
+
+  ops.emplace_back(COperation(CChannel{{set_0, set_1}, {0.5, 0.5}}));
+
+  // Flip qubit conditioned on AND of X and Y
+  KOperator<fp_type> X{{0, 0, 1, 0,
+                        1, 0, 0, 0,}, {}, {"a"}, {}, {}, {}};
+  KOperator<fp_type> I{{1, 0}, {}, {}, {}, {}, {}};
+  KOperation<fp_type>::ChannelMap cmap{{{0, 0}, {I}},
+                                       {{1, 0}, {I}},
+                                       {{0, 1}, {I}},
+                                       {{1, 1}, {X}}};
+  ops.emplace_back(KOperation<fp_type>(cmap, {"X", "Y"}));
+
+  //Measure a
+  string m_label = "a value";
+  KOperator<fp_type>
+      meas_0{{1, 0, 0, 0, 0, 0, 0, 0,}, {}, {"a"}, {}, {}, {"a"}};
+  KOperator<fp_type>
+      meas_1{{0, 0, 1, 0, 0, 0, 0, 0,}, {}, {"a"}, {}, {}, {"a"}};
+  ops.emplace_back(KOperation<fp_type>({meas_0, meas_1}, true, m_label));
+
+  random_device rd;
+  std::mt19937 rgen(rd());
+  KState<Simulator> tmp_state(k_state);
+  KState<Simulator> initial_state(k_state);
+
+  RegisterMap final_registers;
+  for (size_t ii = 0; ii < 100; ii++) {
+    k_state.copy_from(initial_state);
+    final_registers =
+        sample_sequence(ops, k_state, tmp_state, init_reg, rgen, {});
+
+    auto m_val = final_registers.at(m_label);
+    auto X_val = final_registers.at("X");
+    auto Y_val = final_registers.at("Y");
+    TEST_CHECK(equals(m_val, X_val & Y_val));
+
+  }
+
+}
+
 #if DEBUG
 int main() {
 
@@ -81,6 +133,7 @@ int main() {
 #else
 TEST_LIST = {
     {"create destroy", test_state_creation_destruction},
+    {"conditional ops", test_conditional_bit_flip},
     {nullptr, nullptr} // Required final element
 };
 #endif
