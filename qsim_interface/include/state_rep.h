@@ -282,10 +282,14 @@ class KState {
 
   /** Permute and apply a matrix to the specified axes.
    *
+   * Before applying a matrix, this operation applies a permutation to it
+   * according to the qubits assigned to the given axes. It also permutes the
+   * axes accordingly.
+   *
    * @param matrix: Matrix to apply, stored as alternating real and imaginary
    * parts.
    * @param axes: Order of axes corresponding to the qubits of the matrix. Must
-   * satisfy matrix.size() == 2^axes.size()
+   * satisfy matrix.size() == 2^(2*axes.size())
  * */
   void permute_and_apply(qsim::Matrix<fp_type>& matrix,
                          std::vector<std::string>& axes) {
