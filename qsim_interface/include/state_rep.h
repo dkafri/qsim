@@ -143,41 +143,6 @@ class KState {
 
   }
 
-  /** Deallocate a qubit from an axis.
-  *
-  * The axis must have at least one qubit assigned to it. This operation removes
-  * one of the qubits assigned to an axis (the one added most recently). When
-  * removing a qubit from an axis, the removed qubit should correspond to
-   * exactly the zero state (no entanglement).
-  *
-  * @param axis: The axis to which to remove a qubit from.
-  * */
-  void remove_qubit(const std::string& axis) {
-    assert(num_active_qubits() > 0);
-    assert(!axis_qubits[axis].empty());
-
-    // Swap the last qubit of this axis with the last active qubit.
-    const unsigned last_active_q = num_active_qubits() - 1;
-    const unsigned removed_q = axis_qubits[axis].back();
-
-    if (last_active_q != removed_q) {
-      auto state = active_state();
-      std::vector<unsigned> qubits{last_active_q, removed_q};
-      active_simulator().ApplyGate(qubits, swap_matrix.data(), state);
-
-      // Update the axis qubit registry for the axis involved in the swap.
-      std::string swapped_axis = qubit_axis[last_active_q];
-      assert(axis_qubits[swapped_axis].back() == last_active_q);
-      axis_qubits[swapped_axis].pop_back();
-      axis_qubits[swapped_axis].push_back(removed_q);
-      qubit_axis[removed_q] = swapped_axis;
-    }
-    // Deallocate the removed qubit.
-    axis_qubits[axis].pop_back();
-    qubit_axis.pop_back();
-
-  }
-
   /** Remove qubits from a sequence of axes.
    *
    * Removal order is chosen to minimize any required swaps.
@@ -319,6 +284,41 @@ class KState {
   std::vector<std::string>
       qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
 
+  // Private methods
+  /** Deallocate a qubit from an axis.
+  *
+  * The axis must have at least one qubit assigned to it. This operation removes
+  * one of the qubits assigned to an axis (the one added most recently). When
+  * removing a qubit from an axis, the removed qubit should correspond to
+   * exactly the zero state (no entanglement).
+  *
+  * @param axis: The axis to which to remove a qubit from.
+  * */
+  void remove_qubit(const std::string& axis) {
+    assert(num_active_qubits() > 0);
+    assert(!axis_qubits[axis].empty());
+
+    // Swap the last qubit of this axis with the last active qubit.
+    const unsigned last_active_q = num_active_qubits() - 1;
+    const unsigned removed_q = axis_qubits[axis].back();
+
+    if (last_active_q != removed_q) {
+      auto state = active_state();
+      std::vector<unsigned> qubits{last_active_q, removed_q};
+      active_simulator().ApplyGate(qubits, swap_matrix.data(), state);
+
+      // Update the axis qubit registry for the axis involved in the swap.
+      std::string swapped_axis = qubit_axis[last_active_q];
+      assert(axis_qubits[swapped_axis].back() == last_active_q);
+      axis_qubits[swapped_axis].pop_back();
+      axis_qubits[swapped_axis].push_back(removed_q);
+      qubit_axis[removed_q] = swapped_axis;
+    }
+    // Deallocate the removed qubit.
+    axis_qubits[axis].pop_back();
+    qubit_axis.pop_back();
+
+  }
   /** Qubits allocated to one or more axes, accounting for repeats
    *
    * Returns a vector of qubit indices with exactly the same length as the
@@ -378,9 +378,6 @@ class KState {
     return out;
   }
 
-
-
-  // Methods
   /**Number of qubits currently in memory.*/
   unsigned num_active_qubits() const { return qubit_axis.size(); }
 
