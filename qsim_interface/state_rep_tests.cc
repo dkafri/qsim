@@ -68,17 +68,17 @@ void test_kstate_add_remove_qubits_size_grows() {
   state = k_state.active_state();
   TEST_CHECK(equals(expected, state.num_qubits()));
 
-  k_state.remove_qubit("b");
+  k_state.remove_qubits_of({"b"});
   expected -= 1;
   state = k_state.active_state();
   TEST_CHECK(equals(expected, state.num_qubits()));
 
-  k_state.remove_qubit("a");
-  expected -= 1;
+  k_state.remove_qubits_of({"a"});
+  expected -= 2;
   state = k_state.active_state();
   TEST_CHECK(equals(expected, state.num_qubits()));
 
-  k_state.remove_qubit("c");
+  k_state.remove_qubits_of({"c"});
   expected -= 1;
   state = k_state.active_state();
   TEST_CHECK(equals(expected, state.num_qubits()));
@@ -107,7 +107,7 @@ void test_kstate_correct_qubit_removed() {
 
   // remove c qubit. This should swap the first and third qubits so now we will
   // have amplitude in |01>.
-  k_state.remove_qubit("c");
+  k_state.remove_qubits_of({"c"});
   state = k_state.active_state();
   actual = StateSpace::GetAmpl(state, 1);
   TEST_CHECK(equals(actual, complex<fp_type>{1}));
