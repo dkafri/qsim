@@ -134,11 +134,13 @@ struct COperation {
   /** Constructor for a single deterministic operation.*/
   //If I instead initialized in the function body, we would get errors. Why?
   explicit COperation(const COperator& op, bool is_virtual = false)
-      : is_virtual(is_virtual), channels{{{}, CChannel{{op}, {1.0}}}} {}
+      : is_virtual(is_virtual), channels{{{}, CChannel{{op}, {1.0}}}} {
+    validate();
+  }
 
   /** Constructor for an unconditioned stochastic operation.*/
   explicit COperation(const CChannel& channel, bool is_virtual = false)
-      : is_virtual(is_virtual), channels{{{},channel}} {}
+      : is_virtual(is_virtual), channels{{{}, channel}} { validate(); }
 
   /** Generic constructor */
   COperation(ChannelMap cmap,
@@ -146,7 +148,7 @@ struct COperation {
              bool is_virtual = false)
       : channels(std::move(cmap)),
         conditional_registers(std::move(conditional_registers)),
-        is_virtual(is_virtual) {}
+        is_virtual(is_virtual) { validate(); }
 
   /** Apply this operation to a set of classical registers.*/
   void apply(std::unordered_map<std::string, size_t>& registers,
