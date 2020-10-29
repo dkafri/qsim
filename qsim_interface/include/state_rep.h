@@ -118,10 +118,7 @@ class KState {
     return StateSpace(num_threads);
   }
 
-  /** Simulator appropriate to current vector size.*/
-  Simulator active_simulator() const {
-    return Simulator(num_threads);
-  }
+
 
   /* State with current vector size.*/
   State active_state() {
@@ -285,6 +282,11 @@ class KState {
       qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
 
   // Private methods
+  /** Simulator appropriate to current vector size.*/
+  inline Simulator active_simulator() const {
+    return Simulator(num_threads);
+  }
+
   /** Deallocate a qubit from an axis.
   *
   * The axis must have at least one qubit assigned to it. This operation removes

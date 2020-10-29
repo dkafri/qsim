@@ -98,9 +98,12 @@ void test_kstate_correct_qubit_removed() {
   // Prepare state |100> by applying X to qubit 2
   // (first qubit in standard order).
   auto state = k_state.active_state();
-  auto simulator = k_state.active_simulator();
-  auto X = qsim::Cirq::X<Simulator::fp_type>::Create(0, 0).matrix;
-  simulator.ApplyGate(vector<unsigned>{2}, X.data(), state);
+
+  qsim::Matrix<fp_type> X{0, 0, 1, 0, 1, 0, 0, 0};
+  // b has 2 qubits, (1, and 2). The matrix is applied in reverse order with
+  // respect to most recently assigned qubits.
+  vector<string> axes{"b"};
+  k_state.permute_and_apply(X, axes);
   auto actual = StateSpace::GetAmpl(state, 4);
   TEST_CHECK(equals(actual, complex<fp_type>{1}));
 
@@ -146,8 +149,6 @@ void test_remove_qubits_of() {
     TEST_CHECK(k_state.qubits_of(ax).empty());
 
 }
-
-
 
 void test_apply_matrix() {
   KState<Simulator> k_state(3, 5, vector<string>{"c", "b"});
