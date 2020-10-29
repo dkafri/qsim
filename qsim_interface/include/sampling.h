@@ -36,7 +36,7 @@ static inline void sample_kop(KOperation<fp_type>& op,
   if (channel.size() > 1)
     tmp_state.copy_from(k_state);
   unsigned k_ind = 0;
-  double norm2;
+  double norm2 = 1.0;
 
   //Sample operators
   for (auto& k_op : channel) {
@@ -49,7 +49,8 @@ static inline void sample_kop(KOperation<fp_type>& op,
     //Permute and apply matrix
     k_state.permute_and_apply(k_op.matrix, k_op.qubit_axes);
 
-    norm2 = k_state.norm_squared();
+    if (channel.size() > 1) // norm must be 1 if only one operator present.
+      norm2 = k_state.norm_squared();
     cutoff -= norm2;
     if (cutoff < 0) { // operator sampled
       // Apply swaps
@@ -58,8 +59,9 @@ static inline void sample_kop(KOperation<fp_type>& op,
       }
       // Remove axes
       k_state.remove_qubits_of(k_op.removed_axes);
-      //Normalize
-      k_state.rescale(1 / sqrt(norm2));
+      //Normalize if needed
+      if (channel.size() > 1)
+        k_state.rescale(1 / sqrt(norm2));
       break;
     }
     // Operator not sampled -> backtrack. Copy original vector before
