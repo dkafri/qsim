@@ -302,7 +302,7 @@ class KState {
 
     if (last_active_q != removed_q) {
       auto state = active_state();
-      std::vector<unsigned> qubits{last_active_q, removed_q};
+      std::vector<unsigned> qubits{removed_q, last_active_q};
       active_simulator().ApplyGate(qubits, swap_matrix.data(), state);
 
       // Update the axis qubit registry for the axis involved in the swap.
