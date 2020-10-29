@@ -280,6 +280,41 @@ class KState {
     return std::vector<unsigned>(qubits.begin(), qubits.end());
   }
 
+  /** Permute and apply a matrix to the specified axes.
+   *
+   * @param matrix: Matrix to apply, stored as alternating real and imaginary
+   * parts.
+   * @param axes: Order of axes corresponding to the qubits of the matrix. Must
+   * satisfy matrix.size() == 2^axes.size()
+ * */
+  void permute_and_apply(qsim::Matrix<fp_type>& matrix,
+                         std::vector<std::string>& axes) {
+
+    // Qubits for each axis, in reverse order to account for qsim representation
+    auto qubits = qubits_vec(axes, true);
+
+    match_to_reverse_qubits(qubits, matrix, axes);
+
+    // Now we can finally apply the matrix
+    auto state = active_state();
+    active_simulator().ApplyGate(qubits, matrix.data(), state);
+  }
+
+  double norm_squared() {
+    auto state = active_state();
+    return active_state_space().Norm(state);
+  }
+ private:
+  // Attributes
+  State state_vec;
+  const static std::vector<fp_type> swap_matrix;
+  const unsigned num_threads;
+  const unsigned max_qubits;
+  std::unordered_map<std::string, std::list<unsigned>>
+      axis_qubits; /**Qubits allocated to each axis.*/
+  std::vector<std::string>
+      qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
+
   /** Qubits allocated to one or more axes, accounting for repeats
    *
    * Returns a vector of qubit indices with exactly the same length as the
@@ -338,82 +373,6 @@ class KState {
 
     return out;
   }
-
-//  /** Apply a matrix to the specified axes.
-//   *
-//   * @param matrix: Square matrix (array of array, complex float type) to apply
-//   *     to the state.
-//   * @param axes: Order of axes corresponding to the qubits of the matrix.
-//   *     Must satisfy matrix.size() == 2^axes.size()
-//   * */
-//  void apply(const qsim::Cirq::Matrix2q<fp_type>& matrix,
-//             const std::vector<std::string>& axes) {
-//
-//
-//    // Create appropriate gate structure matching qubit ordering.
-//    auto qubits = qubits_vec(axes);
-//    assert(qubits.size() == 2);
-//    auto gate = qsim::Cirq::MatrixGate2<fp_type>::Create(0,
-//                                                         qubits[0],
-//                                                         qubits[1],
-//                                                         matrix);
-//    // Apply gate
-//    auto state = active_state();
-//    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
-//  }
-
-//  /** Apply a matrix to the specified axes.
-// *
-// * @param matrix: Square matrix (array of array, complex float type) to apply
-// *     to the state.
-// * @param axes: Order of axes corresponding to the qubits of the matrix.
-// *     Must satisfy matrix.size() == 2^axes.size(). Repeats are possible.
-// * */
-//  void apply(const qsim::Cirq::Matrix1q<fp_type>& matrix,
-//             const std::vector<std::string>& axes) {
-//    // Create appropriate gate structure matching qubit ordering.
-//    auto qubits = qubits_vec(axes);
-//    assert(qubits.size() == 1);
-//    auto gate = qsim::Cirq::MatrixGate1<fp_type>::Create(0, qubits[0], matrix);
-//    // Apply gate
-//    auto state = active_state();
-//    active_simulator().ApplyGate(gate.qubits, gate.matrix.data(), state);
-//  }
-
-  /** Permute and apply a matrix to the specified axes.
-   *
-   * @param matrix: Matrix to apply, stored as alternating real and imaginary
-   * parts.
-   * @param axes: Order of axes corresponding to the qubits of the matrix. Must
-   * satisfy matrix.size() == 2^axes.size()
- * */
-  void permute_and_apply(qsim::Matrix<fp_type>& matrix,
-                         std::vector<std::string>& axes) {
-
-    // Qubits for each axis, in reverse order to account for qsim representation
-    auto qubits = qubits_vec(axes, true);
-
-    match_to_reverse_qubits(qubits, matrix, axes);
-
-    // Now we can finally apply the matrix
-    auto state = active_state();
-    active_simulator().ApplyGate(qubits, matrix.data(), state);
-  }
-
-  double norm_squared() {
-    auto state = active_state();
-    return active_state_space().Norm(state);
-  }
- private:
-  // Attributes
-  State state_vec;
-  const static std::vector<fp_type> swap_matrix;
-  const unsigned num_threads;
-  const unsigned max_qubits;
-  std::unordered_map<std::string, std::list<unsigned>>
-      axis_qubits; /**Qubits allocated to each axis.*/
-  std::vector<std::string>
-      qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
 
 
 

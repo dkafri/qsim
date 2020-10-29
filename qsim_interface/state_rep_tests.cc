@@ -147,14 +147,7 @@ void test_remove_qubits_of() {
 
 }
 
-void test_qubits_vec() {
-  KState<Simulator> k_state(3, 5, vector<string>{"c", "a", "b", "a", "b"});
 
-  auto actual = k_state.qubits_vec({"a", "c", "b", "b", "a"});
-
-  TEST_CHECK(equals(actual, vector<unsigned>{1, 0, 2, 4, 3}));
-
-}
 
 void test_apply_matrix() {
   KState<Simulator> k_state(3, 5, vector<string>{"c", "b"});
@@ -336,7 +329,6 @@ TEST_LIST = {
     {"apply 2q gate", test_kstate_apply_2q_gate},
     {"transfer qubits", test_kstate_transfer_qubits},
     {"remove multiple qubits", test_remove_qubits_of},
-    {"qubits vector", test_qubits_vec},
     {"apply matrix", test_apply_matrix},
     {nullptr, nullptr} // Required final element
 };
