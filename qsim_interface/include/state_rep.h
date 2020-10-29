@@ -283,7 +283,32 @@ class KState {
     return StateSpace(num_threads);
   }
 
-  /** Deallocate a qubit from an axis.
+  /** Swap two qubits in the state vector and update axis assignments.
+   *
+   * @param q0 : Any active qubit index.
+   * @param q1: Another active qubit index. This qubit must be the most recently
+   *     added qubit for its axis.
+   * */
+  inline void swap_qubits(unsigned int q0, unsigned int q1) {
+
+    static std::vector<unsigned> qubits(2);
+    if (q0 > q1)
+      qubits = {q1, q0};
+    else
+      qubits = {q0, q1};
+
+    auto state = active_state();
+    active_simulator().ApplyGate(qubits, swap_matrix.data(), state);
+
+    // Update the axis qubit registry for the axis involved in the swap.
+    std::string axis_1 = qubit_axis[q1];
+    assert(axis_qubits[axis_1].back() == q1); //q1 must be most recently added.
+    axis_qubits[axis_1].pop_back();
+    axis_qubits[axis_1].push_back(q0);
+    qubit_axis[q0] = axis_1;
+
+  }
+/** Deallocate a qubit from an axis.
   *
   * The axis must have at least one qubit assigned to it. This operation removes
   * one of the qubits assigned to an axis (the one added most recently). When
@@ -300,18 +325,9 @@ class KState {
     const unsigned last_active_q = num_active_qubits() - 1;
     const unsigned removed_q = axis_qubits[axis].back();
 
-    if (last_active_q != removed_q) {
-      auto state = active_state();
-      std::vector<unsigned> qubits{removed_q, last_active_q};
-      active_simulator().ApplyGate(qubits, swap_matrix.data(), state);
+    if (last_active_q != removed_q)
+      swap_qubits(removed_q, last_active_q);
 
-      // Update the axis qubit registry for the axis involved in the swap.
-      std::string swapped_axis = qubit_axis[last_active_q];
-      assert(axis_qubits[swapped_axis].back() == last_active_q);
-      axis_qubits[swapped_axis].pop_back();
-      axis_qubits[swapped_axis].push_back(removed_q);
-      qubit_axis[removed_q] = swapped_axis;
-    }
     // Deallocate the removed qubit.
     axis_qubits[axis].pop_back();
     qubit_axis.pop_back();
