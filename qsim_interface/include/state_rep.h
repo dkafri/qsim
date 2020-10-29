@@ -113,13 +113,6 @@ class KState {
     StateSpace(num_threads).Copy(source_state, my_state);
   }
 
-  /** State space appropriate to current vector size.*/
-  StateSpace active_state_space() const {
-    return StateSpace(num_threads);
-  }
-
-
-
   /* State with current vector size.*/
   State active_state() {
     return StateSpace(num_threads).Create(state_vec.get(), num_active_qubits());
@@ -283,8 +276,11 @@ class KState {
 
   // Private methods
   /** Simulator appropriate to current vector size.*/
-  inline Simulator active_simulator() const {
-    return Simulator(num_threads);
+  inline Simulator active_simulator() const { return Simulator(num_threads); }
+
+  /** State space appropriate to current vector size.*/
+  inline StateSpace active_state_space() const {
+    return StateSpace(num_threads);
   }
 
   /** Deallocate a qubit from an axis.
@@ -381,7 +377,7 @@ class KState {
   }
 
   /**Number of qubits currently in memory.*/
-  unsigned num_active_qubits() const { return qubit_axis.size(); }
+  inline unsigned num_active_qubits() const { return qubit_axis.size(); }
 
 };
 

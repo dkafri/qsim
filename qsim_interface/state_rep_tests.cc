@@ -27,18 +27,15 @@ using Simulator = qsim::Simulator<qsim::For>;
 using Complex = complex<Simulator::fp_type>;
 using Matrix= qsim::Matrix<Simulator::fp_type>;
 
-void test_kstate_space_multiply_norm() {
+void test_kstate_space_rescale_norm() {
   vector<string> axis_labels = {"a", "b"};
   KState<Simulator> k_state(3, 4, axis_labels);
 
-  auto space = k_state.active_state_space();
+  TEST_CHECK(almost_equals(k_state.norm_squared(), 1.0));
 
-  TEST_CHECK(almost_equals(space.Norm(k_state.active_state()), 1.0));
+  k_state.rescale(2.0);
 
-  auto state = k_state.active_state();
-  space.Multiply(2, state);
-
-  TEST_CHECK(almost_equals(space.Norm(k_state.active_state()), 4.0));
+  TEST_CHECK(almost_equals(k_state.norm_squared(), 4.0));
 }
 
 void test_kstate_add_remove_qubits_size_grows() {
@@ -321,7 +318,7 @@ int main() {
 }
 #else
 TEST_LIST = {
-    {"norm_square_and_multiply", test_kstate_space_multiply_norm},
+    {"norm_square_and_multiply", test_kstate_space_rescale_norm},
     {"add_remove_qubit_state_size", test_kstate_add_remove_qubits_size_grows},
     {"copy_constructor", test_kstate_copy_constructor},
     {"copy_from", test_kstate_copy_from},
