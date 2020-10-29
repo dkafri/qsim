@@ -169,7 +169,7 @@ class KState {
             return true;
         }
       }
-
+      // Axis whose qubit is higher in the order should be removed first.
       return a.first > b.first;
     };
     q_and_ax.sort(cmp);
