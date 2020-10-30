@@ -442,6 +442,25 @@ void test_pointer_constructor() {
 
 }
 
+void test_move_assignment() {
+
+  KState<Simulator> src(3, 4, vector<string>{"a", "b"});
+
+  Matrix X{0, 0, 1, 0, 1, 0, 0, 0};
+  vector<string> axes{"b"};
+  src.permute_and_apply(X, axes); //State |01> after C alignment.
+  src.c_align();
+
+  auto state = src.active_state();
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 1) == Complex(1, 0));
+
+  KState<Simulator> dest(move(src));
+  state = dest.active_state();
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 1) == Complex(1, 0));
+
+
+}
+
 #if DEBUG
 int main() {
 
@@ -464,6 +483,7 @@ TEST_LIST = {
     {"sort axes state preserved", test_sort_axes_correct_state},
     {"f_align reverses c_align", test_f_align_reverse_c_align},
     {"pointer constructor", test_pointer_constructor},
+    {"move assignment", test_move_assignment},
     {nullptr, nullptr} // Required final element
 };
 #endif

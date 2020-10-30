@@ -91,7 +91,6 @@ class KState {
          ++axis_ptr) {
       add_qubit(*axis_ptr);
     }
-
   }
 
   /** Copy constructor*/
@@ -108,7 +107,28 @@ class KState {
     }
 
     StateSpace(num_threads).Copy(k_state.state_vec, state_vec);
+  }
 
+  /** Move assignment */
+  KState& operator=(KState&& other) noexcept {
+    if (this != &other) {
+      num_threads = std::move(other.num_threads);
+      max_qubits = std::move(other.max_qubits);
+      state_vec = std::move(other.state_vec);
+      axis_qubits = std::move(other.axis_qubits);
+      qubit_axis = std::move(other.qubit_axis);
+    }
+    return *this;
+  }
+
+  /** Move constructor*/
+  KState(KState&& k_state) noexcept
+      : num_threads(0),
+        max_qubits(0),
+      //We need to initialize state_vec because State has no trivial
+      // constructor.
+        state_vec(StateSpace(0).Create(0)) {
+    *this = std::move(k_state);
   }
 
   /** \brief Copy another state into this one.
@@ -371,8 +391,8 @@ class KState {
   // Attributes
   State state_vec;
   const static std::vector<fp_type> swap_matrix;
-  const unsigned num_threads;
-  const unsigned max_qubits;
+  unsigned num_threads;
+  unsigned max_qubits;
   using AxisQubits = std::unordered_map<std::string, std::list<unsigned>>;
   AxisQubits axis_qubits; /**Qubits allocated to each axis.*/
   std::vector<std::string>
