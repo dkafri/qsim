@@ -18,6 +18,7 @@ def test_uint_matrix_import():
   assert np.array_equal(np.arange(2 * 3).reshape(2, 3), mat_np)
 
 
-def test_sampler_init_random_seed():
+def test_sampler_setters():
   sampler_cpp = pbi.Sampler(3, 4)
   sampler_cpp.set_random_seed(22)
+  sampler_cpp.set_initial_registers({"a": 1})

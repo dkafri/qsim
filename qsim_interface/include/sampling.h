@@ -267,6 +267,11 @@ class Sampler {
 /** Seed the random number generator */
   void set_random_seed(size_t seed) { rgen = std::mt19937(seed); }
 
+  void set_initial_registers(const RegisterMap& registers) {
+    init_registers.clear();
+    for (const auto& k_v: registers) init_registers.insert(k_v);
+  };
+
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/
   size_t max_qubits; /** Sets max required memory for representing state.*/

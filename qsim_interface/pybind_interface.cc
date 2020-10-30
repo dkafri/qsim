@@ -3,6 +3,7 @@
 //
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <utility>
 #include <simmux.h>
@@ -50,5 +51,6 @@ PYBIND11_MODULE(pybind_interface, m) {
 
   py::class_<Sampler>(m, "Sampler")
       .def(py::init<size_t, size_t>()) //bind constructor
-      .def("set_random_seed", &Sampler::set_random_seed);
+      .def("set_random_seed", &Sampler::set_random_seed) //bind methods
+      .def("set_initial_registers", &Sampler::set_initial_registers);
 }
