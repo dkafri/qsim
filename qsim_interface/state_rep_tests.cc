@@ -310,10 +310,79 @@ void test_kstate_transfer_qubits() {
 
 }
 
+void test_sort_axes_axis_order() {
+
+  auto unique_axes = vector<string>{"a", "b", "c"};
+  auto qubit_axis = vector<string>{"c", "a", "b", "a", "b"};
+  KState<Simulator> k_state(4, 5, qubit_axis);
+
+
+//  auto state = k_state.active_state();
+//  for (size_t ii = 0; ii < size_t{1} << qubit_axis.size(); ii++) {
+//    Simulator::StateSpace::SetAmpl(state, ii, ii, 0);
+//  }
+  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{1, 3}));
+  TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 4}));
+  TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{0}));
+
+  k_state.c_align();
+
+  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{4, 3}));
+  TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 1}));
+  TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{0}));
+}
+
+inline size_t get_bit(size_t num, size_t which_bit) {
+  constexpr size_t one(1);
+  return (num & (one << which_bit)) >> which_bit;
+}
+
+void test_sort_axes_correct_state(size_t init_state) {
+  TEST_CHECK(0 <= init_state);
+
+  auto qubit_axis = vector<string>{"c", "a", "b"};
+  const size_t num_axes = qubit_axis.size();
+  TEST_CHECK(init_state < size_t{1} << num_axes);
+  auto ordered_axis(qubit_axis);
+  std::sort(ordered_axis.begin(), ordered_axis.end());
+
+  KState<Simulator> k_state(4, 5, qubit_axis);
+
+  //Set system to initial state in expected alphabetical order
+  Matrix X{0, 0, 1, 0,
+           1, 0, 0, 0};
+  vector<string> axes;
+
+  //Apply bit flips on axes to prepare expected state
+  for (size_t bit_ind = 0; bit_ind < num_axes; bit_ind++) {
+    if (get_bit(init_state, bit_ind)) {
+      axes = {ordered_axis[num_axes - bit_ind - 1]};
+      k_state.permute_and_apply(X, axes);
+    }
+  }
+
+  k_state.c_align();
+
+  auto state = k_state.active_state();
+  auto actual = Simulator::StateSpace::GetAmpl(state, init_state);
+  TEST_CHECK(actual == Complex(1));
+
+}
+
+void test_sort_axes_correct_state() {
+
+  for (size_t init_state = 0; init_state < 8; init_state++) {
+    TEST_CASE(to_string(init_state).c_str());
+    test_sort_axes_correct_state(init_state);
+
+  }
+
+}
+
 #if DEBUG
 int main() {
 
-  test_remove_qubits_of();
+  test_sort_axes_axis_order();
   return 0;
 }
 #else
@@ -328,6 +397,8 @@ TEST_LIST = {
     {"transfer qubits", test_kstate_transfer_qubits},
     {"remove multiple qubits", test_remove_qubits_of},
     {"apply matrix", test_apply_matrix},
+    {"sort axes", test_sort_axes_axis_order},
+    {"sort axes state preserved", test_sort_axes_correct_state},
     {nullptr, nullptr} // Required final element
 };
 #endif
