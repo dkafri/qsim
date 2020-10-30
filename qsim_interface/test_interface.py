@@ -19,7 +19,13 @@ def test_uint_matrix_import():
 
 
 def test_sampler_setters():
-  sampler_cpp = pbi.Sampler(3, 4)
+  max_qubits = 4
+  sampler_cpp = pbi.Sampler(3, max_qubits)
   sampler_cpp.set_random_seed(22)
   sampler_cpp.set_initial_registers({"a": 1})
   sampler_cpp.set_register_order(["c", "d", "e"])
+
+  FPType = np.dtype('float32')
+  state_vec = np.arange((2 * 2 ** max_qubits)).astype(FPType)
+  axes = ["Y", "mom","Nono","M"]
+  sampler_cpp.bind_initial_state(state_vec, axes)
