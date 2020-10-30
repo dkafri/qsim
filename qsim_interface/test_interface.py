@@ -22,3 +22,4 @@ def test_sampler_setters():
   sampler_cpp = pbi.Sampler(3, 4)
   sampler_cpp.set_random_seed(22)
   sampler_cpp.set_initial_registers({"a": 1})
+  sampler_cpp.set_register_order(["c", "d", "e"])
