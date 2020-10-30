@@ -495,6 +495,9 @@ inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
   }
 }
 
+// Apply a permutation to a vector using swap operations. For each swap between
+// two indices in the vector, apply a side effect conditioned on those indices.
+// Source: https://devblogs.microsoft.com/oldnewthing/20170102-00/?p=95095
 template<typename T>
 void static inline apply_permutation(
     std::vector<T>& v,
