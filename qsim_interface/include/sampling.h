@@ -205,10 +205,8 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
 
   return registers;
 
-
-
-  // determine
-
 }
+
+
 
 #endif //QSIM_INTERFACE_INCLUDE_SAMPLING_H_
