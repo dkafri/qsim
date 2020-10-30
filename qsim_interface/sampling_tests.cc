@@ -3,7 +3,6 @@
 //
 
 #include <iostream>
-#include <cassert>
 #include <k_ops.h>
 #include <sampling.h>
 #include "include/test_utils.h"
