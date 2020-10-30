@@ -207,6 +207,26 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
 
 }
 
+/** Collect many samples for a sequence of operations.
+ *
+ * inputs:
+ * vector of operations (we can create a python function that emplaces
+ * KOperation or COperation into this vector. How do we expose this vector?)
+ * c aligned initial state vector
+ * initial axis labels (qubit_axis)
+ * initial registers
+ * register order (for all saved final registers. should contain measurements,
+ * added registers... can we search this to determine saved_virtuals?)
+ * random seed
+ * num_samples
+ *
+ * outputs:
+ * a struct storing a vector of final state vectors (c aligned)
+ * a vector of final qubit_axis (after doing c_align these should all match...)
+ * a 2d array of recorded register values, in register order.
+ *
+ * */
+
 
 
 #endif //QSIM_INTERFACE_INCLUDE_SAMPLING_H_
