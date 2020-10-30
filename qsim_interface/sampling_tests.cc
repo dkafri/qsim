@@ -8,7 +8,6 @@
 #include "include/test_utils.h"
 #include "../lib/simmux.h"
 #include "../lib/formux.h"
-#include "include/state_rep.h"
 
 #define DEBUG 0 //Set to 1 to disable acutest, which allows for debugging.
 
@@ -28,7 +27,7 @@ using Matrix = qsim::Matrix<fp_type>;
 
 constexpr Complex one(1, 0);
 
-void test_state_creation_destruction(bool swap_cnot) {
+void test_state_creation_destruction_case(bool swap_cnot) {
   KState<Simulator> k_state(3, 5, vector<string>{"a", "b"});
 
   vector<Operation<fp_type>> ops;
@@ -87,10 +86,10 @@ void test_state_creation_destruction(bool swap_cnot) {
 void test_state_creation_destruction() {
 
   TEST_CASE("swap");
-  test_state_creation_destruction(true);
+  test_state_creation_destruction_case(true);
 
   TEST_CASE("no_swap");
-  test_state_creation_destruction(false);
+  test_state_creation_destruction_case(false);
 
 }
 
@@ -191,7 +190,7 @@ void test_virtual_operations_no_effect() {
 
   k_state.c_align();
   auto state = k_state.active_state();
-  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 0) == Complex(1));
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 0) == Complex(1, 0));
 
 }
 
