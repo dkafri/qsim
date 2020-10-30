@@ -196,7 +196,7 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
 
     //Sample each operation. Skip virtual operations.
     for (auto& op: ops) {
-      if (mpark::visit(IsVirtual, op))
+      if (is_virtual(op))
         continue;
       cutoff = qsim::RandomValue(rng, 1.0);
       sample_op(op, k_state, tmp_state, registers, cutoff);
@@ -227,6 +227,59 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
  *
  * */
 
+/** Interface object for collecting samples
+ *
+ * Constructor requires num_threads and max_qubits.
+ *
+ * Attributes:
+ * initial_state (private) - KState. Plus function to set it using input array.
+ * initial_registers (private) - Setter
+ * ops(private) - Function to add COperations and KOperations sequentially.
+ * rng(private) - Function to set seed;
+ * register_order(private) - setter
+ *
+ * Other methods:
+ * sample_states(num_samples) - assumes initial_state/registers/register_order has already
+ * been set. returns a struct storing
+ *   a vector of final state vectors (c aligned)
+ *   a vector of final qubit_axis (after doing c_align these should all match...)
+ *   a 2d array of recorded register values, in register order.
+ *
+ * */
 
+template<typename Simulator>
+class Sampler {
+  using fp_type = typename Simulator::fp_type;
+  using StateSpace = typename Simulator::StateSpace;
+
+  /** Basic constructor */
+  // We do not allocate memory for the constructed initial state since we
+  // assume memory will be externally allocated.
+  Sampler(size_t num_threads, size_t max_qubits)
+      : num_threads(num_threads),
+        max_qubits(max_qubits),
+        init_state(StateSpace(num_threads).Create(1)),
+        init_registers(), register_order(), rgen(std::random_device{}()) {
+
+  };
+
+  /** Seed the random number generator */
+  inline void set_random_seed(size_t seed) { rgen = std::mt19937(seed); }
+
+
+
+ private:
+  size_t num_threads; /** Number of multi-threads for simulation.*/
+  size_t max_qubits; /** Sets max required memory for representing state.*/
+  KState<Simulator> init_state; /** Stores initial state vector.*/
+  RegisterMap init_registers; /** Initial classical registers */
+  std::vector<Operation<fp_type>> ops; /** Operations to sample over.*/
+  std::mt19937 rgen; /** random number generator*/
+  std::vector<std::string> register_order; /** Order of all saved registers.
+ * This is used to determine which virtual registers are recorded and also the
+ * output array.*/
+
+
+};
 
 #endif //QSIM_INTERFACE_INCLUDE_SAMPLING_H_
