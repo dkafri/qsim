@@ -5,6 +5,9 @@
 #include <pybind11/pybind11.h>
 
 #include <utility>
+#include <simmux.h>
+#include <sampling.h>
+#include <formux.h>
 
 namespace py = pybind11;
 
@@ -42,4 +45,10 @@ PYBIND11_MODULE(pybind_interface, m) {
       })
       .def(py::init<size_t, size_t>()); // bind constructor
 
+  using Simulator = qsim::Simulator<qsim::For>;
+  using Sampler = Sampler<Simulator>;
+
+  py::class_<Sampler>(m, "Sampler")
+      .def(py::init<size_t, size_t>()) //bind constructor
+      .def("set_random_seed", &Sampler::set_random_seed);
 }

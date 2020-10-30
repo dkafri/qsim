@@ -249,6 +249,7 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
 
 template<typename Simulator>
 class Sampler {
+ public:
   using fp_type = typename Simulator::fp_type;
   using StateSpace = typename Simulator::StateSpace;
 
@@ -258,20 +259,18 @@ class Sampler {
   Sampler(size_t num_threads, size_t max_qubits)
       : num_threads(num_threads),
         max_qubits(max_qubits),
-        init_state(StateSpace(num_threads).Create(1)),
-        init_registers(), register_order(), rgen(std::random_device{}()) {
-
+        init_kstate(num_threads, 1, std::vector<std::string>{}) {
+    std::random_device rd;
+    rgen = std::mt19937(rd());
   };
 
-  /** Seed the random number generator */
-  inline void set_random_seed(size_t seed) { rgen = std::mt19937(seed); }
-
-
+/** Seed the random number generator */
+  void set_random_seed(size_t seed) { rgen = std::mt19937(seed); }
 
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/
   size_t max_qubits; /** Sets max required memory for representing state.*/
-  KState<Simulator> init_state; /** Stores initial state vector.*/
+  KState<Simulator> init_kstate; /** Stores initial state vector.*/
   RegisterMap init_registers; /** Initial classical registers */
   std::vector<Operation<fp_type>> ops; /** Operations to sample over.*/
   std::mt19937 rgen; /** random number generator*/
