@@ -25,6 +25,7 @@ void TEST_CASE(const char*) {};
 using namespace std;
 using Simulator = qsim::Simulator<qsim::For>;
 using Complex = complex<Simulator::fp_type>;
+using fp_type = Simulator::fp_type;
 using Matrix= qsim::Matrix<Simulator::fp_type>;
 
 void test_kstate_space_rescale_norm() {
@@ -404,6 +405,43 @@ void test_f_align_reverse_c_align() {
 
 }
 
+void test_pointer_constructor() {
+
+  size_t max_qubits = 3;
+  size_t size =
+      2 * (size_t{1} << max_qubits); //data stored as R,R,R,...,I,I,I,....
+  fp_type* data;
+  data = new fp_type[size];
+
+  for (size_t ii = 0; ii < size / 2; ii++) {
+    data[ii] = fp_type(2 * ii);
+    data[ii + size / 2] = fp_type(2 * ii + 1);
+  }
+
+  for (;;) {
+    KState<Simulator>
+        k_state(3, max_qubits, vector<string>{"a", "b", "c"}, data);
+
+    auto state = k_state.active_state();
+    //confirm data storage convention.
+    for (size_t ii = 0; ii < size / 2; ii++) {
+      auto actual = Simulator::StateSpace::GetAmpl(state, ii);
+      Complex expected(ii * 2, 2 * ii + 1);
+      TEST_CHECK(actual == expected);
+    }
+    break;
+  }
+
+  // removing KState from scope does not delete data
+  for (size_t ii = 0; ii < size / 2; ii++) {
+    TEST_CHECK(data[ii] == fp_type(2 * ii));
+    TEST_CHECK(data[ii + size / 2] == fp_type(2 * ii + 1));
+  }
+
+  delete[]data;
+
+}
+
 #if DEBUG
 int main() {
 
@@ -425,6 +463,7 @@ TEST_LIST = {
     {"sort axes", test_sort_axes_axis_order},
     {"sort axes state preserved", test_sort_axes_correct_state},
     {"f_align reverses c_align", test_f_align_reverse_c_align},
+    {"pointer constructor", test_pointer_constructor},
     {nullptr, nullptr} // Required final element
 };
 #endif
