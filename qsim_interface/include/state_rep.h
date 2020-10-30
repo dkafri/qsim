@@ -23,6 +23,13 @@ inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
                                     qsim::Matrix<fp_type>& matrix,
                                     std::vector<std::string>& qubit_axes);
 
+template<typename T>
+void static inline apply_permutation(
+    std::vector<T>& v,
+    std::vector<unsigned>& indices,
+    const std::function<void(unsigned, unsigned)>&
+);
+
 /* Data representation of a state vector with variable axis dimensions.
  *
  * This class allows for tracking and update of state tensor axis labels,
@@ -116,6 +123,52 @@ class KState {
   /* State with current vector size.*/
   State active_state() {
     return StateSpace(num_threads).Create(state_vec.get(), num_active_qubits());
+  }
+
+  /** Sort qubit axes in alphabetical axis order, reverse qubits.
+   *
+   * This operation swaps axes in the system state so they are in alphabetical
+   * order. It also reverses the qubit ordering so that it matches the typical
+   * numpy.kron definition (i.e. the last qubit index changes fastest).
+   *
+   * Once this method is called the qubit order no longer matches what qsim
+   * expects, so applying matrices to the state will not work as expected.
+   *
+   * */
+  void c_align() {
+    //TODO: Proper testing of this method when axes are assigned more than 1
+    // qubit.
+
+    // Determine new qubit order so that axes are alphabetical
+    using AxisQubit = std::pair<std::string, unsigned>;
+    std::vector<AxisQubit> sorted_axes_qubits;
+    sorted_axes_qubits.reserve(qubit_axis.size());
+    for (unsigned ii = 0; ii < qubit_axis.size(); ii++)
+      sorted_axes_qubits.push_back({qubit_axis[ii], ii});
+
+    std::sort(sorted_axes_qubits.begin(), sorted_axes_qubits.end(),
+              [](const AxisQubit& a, const AxisQubit& b) {
+                if (a.first != b.first)
+                  return a.first > b.first;
+                return a.second > b.second;
+              });
+
+    //Permutation required to sort qubit_axis alphabetically
+    std::vector<unsigned> permutation;
+    permutation.reserve(qubit_axis.size());
+    for (const auto& ax_q : sorted_axes_qubits)
+      permutation.push_back(ax_q.second);
+
+    //Apply qubit swaps and axis swaps so that new order is observed.
+    std::function<void(unsigned, unsigned)>
+        effect = [this](unsigned q0, unsigned q1) { swap_qubits(q0, q1); };
+    apply_permutation(qubit_axis, permutation, effect);
+
+    //update axis_qubits
+    axis_qubits.clear();
+    for (unsigned q = 0; q < qubit_axis.size(); q++)
+      axis_qubits[qubit_axis[q]].push_front(q);
+
   }
 
   /** Allocate a qubit to an axis.
@@ -269,7 +322,7 @@ class KState {
   const static std::vector<fp_type> swap_matrix;
   const unsigned num_threads;
   const unsigned max_qubits;
-  using AxisQubits = std::unordered_map<std::string, std::vector<unsigned>>;
+  using AxisQubits = std::unordered_map<std::string, std::list<unsigned>>;
   AxisQubits axis_qubits; /**Qubits allocated to each axis.*/
   std::vector<std::string>
       qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
@@ -438,6 +491,26 @@ inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
     for (const auto& ind :perm) new_axes.push_back(qubit_axes[ind]);
     std::reverse(new_axes.begin(), new_axes.end());
     qubit_axes = std::move(new_axes);
+  }
+}
+
+template<typename T>
+void static inline apply_permutation(
+    std::vector<T>& v,
+    std::vector<unsigned>& indices,
+    const std::function<void(unsigned, unsigned)>& side_effect
+) {
+  using std::swap; // to permit Koenig lookup
+  for (unsigned i = 0; i < indices.size(); i++) {
+    unsigned current = i;
+    while (i != indices[current]) {
+      unsigned next = indices[current];
+      side_effect(current, next);
+      swap(v[current], v[next]);
+      indices[current] = current;
+      current = next;
+    }
+    indices[current] = current;
   }
 }
 
