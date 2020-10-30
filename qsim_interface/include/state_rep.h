@@ -132,6 +132,9 @@ class KState {
    * order. It also reverses the qubit ordering so that it matches the typical
    * numpy.kron definition (i.e. the last qubit index changes fastest).
    *
+   * After this method is called, the qubits are assigned such that reading
+   * qubits of all axes in alphabetical order produces 0,1,2,3,...
+   *
    * Once this method is called the qubit order no longer matches what qsim
    * expects, so applying matrices to the state will not work as expected.
    *
@@ -164,11 +167,35 @@ class KState {
     std::function<void(unsigned, unsigned)>
         effect = [this](unsigned q0, unsigned q1) { swap_qubits(q0, q1); };
     apply_permutation(qubit_axis, permutation, effect);
+    //reverse the qubit assignment to match C ordering
+    std::reverse(qubit_axis.begin(), qubit_axis.end());
+
 
     //update axis_qubits
     axis_qubits.clear();
     for (unsigned q = 0; q < qubit_axis.size(); q++)
-      axis_qubits[qubit_axis[q]].push_front(q);
+      axis_qubits[qubit_axis[q]].push_back(q);
+
+  }
+
+  /** Reverse qubit order to match qsim.
+   *
+   * This method partially undoes the action of c_align() by reassigning
+   * qubits to axes in reverse order. After this is invoked matrix operations
+   * may be applied on the system state again.
+   *
+   * This operation is efficient in that it only reassigned qubits to axes in
+   * reverse order and does not require any manipulation of the state vector.
+   *
+   * */
+  void f_align() {
+
+    //reverse qubit_axis
+    std::reverse(qubit_axis.begin(), qubit_axis.end());
+    //update axis_qubits
+    axis_qubits.clear();
+    for (unsigned q = 0; q < qubit_axis.size(); q++)
+      axis_qubits[qubit_axis[q]].push_back(q);
 
   }
 

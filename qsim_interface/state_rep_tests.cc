@@ -316,20 +316,15 @@ void test_sort_axes_axis_order() {
   auto qubit_axis = vector<string>{"c", "a", "b", "a", "b"};
   KState<Simulator> k_state(4, 5, qubit_axis);
 
-
-//  auto state = k_state.active_state();
-//  for (size_t ii = 0; ii < size_t{1} << qubit_axis.size(); ii++) {
-//    Simulator::StateSpace::SetAmpl(state, ii, ii, 0);
-//  }
   TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{1, 3}));
   TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 4}));
   TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{0}));
 
   k_state.c_align();
 
-  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{4, 3}));
-  TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 1}));
-  TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{0}));
+  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{0, 1}));
+  TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 3}));
+  TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{4}));
 }
 
 inline size_t get_bit(size_t num, size_t which_bit) {
@@ -379,6 +374,36 @@ void test_sort_axes_correct_state() {
 
 }
 
+void test_f_align_reverse_c_align() {
+
+  KState<Simulator> k_state(4, 5, vector<string>{"d", "d", "a", "b", "c"});
+
+  //X on "b", CNOT from b to a
+  Matrix X{0, 0, 1, 0,
+           1, 0, 0, 0};
+  vector<string> axes{"a"};
+  k_state.permute_and_apply(X, axes);
+
+  k_state.c_align();
+  auto state = k_state.active_state();
+  //|10000> -> 16
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 16) == Complex{1});
+
+  k_state.f_align(); // Now we can apply matrices again.
+
+  Matrix CNOT{1, 0, 0, 0, 0, 0, 0, 0,
+              0, 0, 1, 0, 0, 0, 0, 0,
+              0, 0, 0, 0, 0, 0, 1, 0,
+              0, 0, 0, 0, 1, 0, 0, 0};
+  axes = {"a", "b"};
+  k_state.permute_and_apply(CNOT, axes);
+
+  k_state.c_align();
+  //|11000> -> 16+8=24
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 24) == Complex{1});
+
+}
+
 #if DEBUG
 int main() {
 
@@ -399,6 +424,7 @@ TEST_LIST = {
     {"apply matrix", test_apply_matrix},
     {"sort axes", test_sort_axes_axis_order},
     {"sort axes state preserved", test_sort_axes_correct_state},
+    {"f_align reverses c_align", test_f_align_reverse_c_align},
     {nullptr, nullptr} // Required final element
 };
 #endif
