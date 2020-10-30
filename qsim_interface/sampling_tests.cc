@@ -126,6 +126,55 @@ void test_conditional_bit_flip() {
 
 }
 
+void test_virtual_operations_no_effect() {
+
+  vector<string> axes{"a", "b"};
+  KState<Simulator> k_state(2, 4, axes);
+
+  vector<Operation<fp_type>> ops;
+
+  //Virtual bit flip on "a"
+  KOperator<fp_type> XV{{0, 0, 1, 0,
+                         1, 0, 0, 0}, {}, {"a"}, {}, {}, {}};
+  ops.emplace_back(KOperation<fp_type>(XV, false, "XV", true));
+
+  //virtual measurement of "a"
+  KOperator<fp_type> meas_0{{1, 0, 0, 0,
+                             0, 0, 0, 0}, {}, {"a"}, {}, {}, {"a"}};
+  KOperator<fp_type> meas_1{{0, 0, 1, 0,
+                             0, 0, 0, 0}, {}, {"a"}, {}, {}, {"a"}};
+  string vm_label = "a (V)";
+  ops.emplace_back(KOperation<fp_type>({meas_0, meas_1,},
+                                       true,
+                                       vm_label,
+                                       true));
+
+  //virtual copy of a into a new register
+  string vm_label2 = "b (V)";
+  COperator cp{{{{0}, {1}},
+                {{1}, {1}}}, {vm_label}, {vm_label2}, {vm_label2}};
+  ops.emplace_back(COperation{cp, true});
+
+  random_device rd;
+  std::mt19937 rgen(rd());
+  KState<Simulator> tmp_state(k_state);
+
+  RegisterMap final_registers;
+  final_registers =
+      sample_sequence(ops, k_state, tmp_state, {}, rgen, {vm_label, vm_label2});
+
+  //virtual registers recorded
+  TEST_CHECK(final_registers.at(vm_label) == 1);
+  TEST_CHECK(final_registers.at(vm_label2) == 1);
+  // but "a" was not destroyed or flipped.
+  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{0}));
+
+  k_state.c_align();
+  auto state = k_state.active_state();
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 0) == Complex(1));
+
+}
+
 #if DEBUG
 int main() {
 
@@ -135,6 +184,7 @@ int main() {
 TEST_LIST = {
     {"create destroy", test_state_creation_destruction},
     {"conditional ops", test_conditional_bit_flip},
+    {"virtual operations no effect", test_virtual_operations_no_effect},
     {nullptr, nullptr} // Required final element
 };
 #endif
