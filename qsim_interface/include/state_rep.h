@@ -71,6 +71,29 @@ class KState {
 
   }
 
+  /** Constructor using existing allocated memory for the state vector.
+   *
+   * Constructing KState in this way means it will not deallocated specified
+   * memory if KState is deleted.
+   * */
+  template<typename StringIterable>
+  KState(unsigned num_threads,
+         unsigned max_qubits,
+         const StringIterable axis_labels,
+         fp_type* data
+  )
+      : state_vec(StateSpace(num_threads).Create(data, max_qubits)),
+        num_threads(num_threads), max_qubits(max_qubits) {
+
+    // Assign qubits to axis labels. Assume all axes are initially allocated one
+    // qubit.
+    for (auto axis_ptr = axis_labels.begin(); axis_ptr != axis_labels.end();
+         ++axis_ptr) {
+      add_qubit(*axis_ptr);
+    }
+
+  }
+
   /** Copy constructor*/
   KState(const KState& k_state) :
       state_vec(StateSpace(k_state.num_threads).Create(k_state.max_qubits)),
