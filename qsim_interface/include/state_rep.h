@@ -15,6 +15,7 @@
 #include <cassert>
 #include <set>
 #include <unordered_set>
+#include <functional>
 #include "../../lib/matrix.h"
 #include "../../lib/gates_cirq.h"
 
