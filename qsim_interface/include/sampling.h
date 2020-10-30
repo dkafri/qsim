@@ -272,6 +272,10 @@ class Sampler {
     for (const auto& k_v: registers) init_registers.insert(k_v);
   };
 
+  void set_register_order(const std::vector<std::string>& order) {
+    register_order = order;
+  };
+
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/
   size_t max_qubits; /** Sets max required memory for representing state.*/
