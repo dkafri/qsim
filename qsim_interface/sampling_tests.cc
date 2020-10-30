@@ -31,7 +31,7 @@ constexpr Complex one(1, 0);
 
 void test_state_creation_destruction() {
 
-  KState<Simulator> k_state(3, 5, vector<string>{"a"});
+  KState<Simulator> k_state(3, 5, vector<string>{"a", "b"});
 
   vector<Operation<fp_type>> ops;
 
@@ -66,6 +66,7 @@ void test_state_creation_destruction() {
     k_state.copy_from(initial_state);
     final_registers = sample_sequence(ops, k_state, tmp_state, {}, rgen, {});
 
+    k_state.c_align(); // remaining axes are "bc", so 0 and 1 are |00> and |01>
     auto m_val = final_registers.at(m_label); // a measurement maps to c state
     auto actual = StateSpace::GetAmpl(k_state.active_state(), m_val);
     TEST_CHECK(equals(actual, one));

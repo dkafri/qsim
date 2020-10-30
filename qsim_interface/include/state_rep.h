@@ -28,7 +28,7 @@ template<typename T>
 void static inline apply_permutation(
     std::vector<T>& v,
     std::vector<unsigned>& indices,
-    const std::function<void(unsigned, unsigned)>&
+    const std::function<void(unsigned, unsigned)>& side_effect
 );
 
 /* Data representation of a state vector with variable axis dimensions.
