@@ -37,4 +37,5 @@ if (NOT pybind11_POPULATED)
     add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif ()
 
+pybind11_add_module(pybind_interface pybind_interface.cc)
 pybind11_add_module(pybind_example pybind_example.cc)
