@@ -29,8 +29,7 @@ using Matrix = qsim::Matrix<fp_type>;
 
 constexpr Complex one(1, 0);
 
-void test_state_creation_destruction() {
-
+void test_state_creation_destruction(bool swap_cnot) {
   KState<Simulator> k_state(3, 5, vector<string>{"a", "b"});
 
   vector<Operation<fp_type>> ops;
@@ -42,11 +41,23 @@ void test_state_creation_destruction() {
   ops.emplace_back(KOperation<fp_type>(c_plus));
 
   //CNOT between "c" and "a"
-  KOperator<fp_type> CNOT{{1, 0, 0, 0, 0, 0, 0, 0,
-                           0, 0, 1, 0, 0, 0, 0, 0,
-                           0, 0, 0, 0, 0, 0, 1, 0,
-                           0, 0, 0, 0, 1, 0, 0, 0}, {}, {"c", "a"}, {}, {}, {}};
-  ops.emplace_back(KOperation<fp_type>(CNOT));
+  if (swap_cnot) {
+    KOperator<fp_type> CNOT{{1, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 1, 0,
+                             0, 0, 0, 0, 1, 0, 0, 0,
+                             0, 0, 1, 0, 0, 0, 0, 0}, {}, {"a", "c"}, {}, {},
+                            {}};
+    ops.emplace_back(KOperation<fp_type>(CNOT));
+  } else {
+    KOperator<fp_type> CNOT{{1, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 1, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 1, 0,
+                             0, 0, 0, 0, 1, 0, 0, 0}, {}, {"c", "a"}, {}, {},
+                            {}};
+    ops.emplace_back(KOperation<fp_type>(CNOT));
+  }
+
+
 
   // Measure "a" destructively
   KOperator<fp_type> meas_0{{1, 0, 0, 0,
@@ -72,6 +83,16 @@ void test_state_creation_destruction() {
     TEST_CHECK(equals(actual, one));
 
   }
+}
+
+void test_state_creation_destruction() {
+
+  TEST_CASE("swap");
+  test_state_creation_destruction(true);
+
+  TEST_CASE("no_swap");
+  test_state_creation_destruction(false);
+
 }
 
 void test_conditional_bit_flip() {
