@@ -25,7 +25,11 @@ def test_sampler_setters():
   sampler_cpp.set_initial_registers({"a": 1})
   sampler_cpp.set_register_order(["c", "d", "e"])
 
-  FPType = np.dtype('float32')
-  state_vec = np.arange((2 * 2 ** max_qubits)).astype(FPType)
-  axes = ["Y", "mom","Nono","M"]
+  ComplexType = np.dtype('complex64')
+  # state_vec = np.arange((2 ** max_qubits)).astype(ComplexType)
+  state_vec = np.zeros((2 ** max_qubits), ComplexType)
+  state_vec[3] = 1.0
+  state_vec[5] = 2.0
+  state_vec[0] = 3.0
+  axes = ["a", "b", "c"]
   sampler_cpp.bind_initial_state(state_vec, axes)
