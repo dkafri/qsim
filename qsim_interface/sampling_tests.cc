@@ -75,7 +75,8 @@ void test_state_creation_destruction_case(bool swap_cnot) {
     k_state.copy_from(initial_state);
     final_registers = sample_sequence(ops, k_state, tmp_state, {}, rgen, {});
 
-    k_state.c_align(); // remaining axes are "bc", so 0 and 1 are |00> and |01>
+    // remaining axes are "bc", so 0 and 1 are |00> and |01>
+    k_state.order_axes({"c", "b"});
     auto m_val = final_registers.at(m_label); // a measurement maps to c state
     auto actual = StateSpace::GetAmpl(k_state.active_state(), m_val);
     TEST_CHECK(equals(actual, one));
@@ -188,7 +189,7 @@ void test_virtual_operations_no_effect() {
   // but "a" was not destroyed or flipped.
   TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{0}));
 
-  k_state.c_align();
+  k_state.order_axes({"b", "a"});
   auto state = k_state.active_state();
   TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 0) == Complex(1, 0));
 

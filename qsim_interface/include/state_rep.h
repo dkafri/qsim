@@ -169,72 +169,60 @@ class KState {
     return StateSpace(num_threads).Create(state_vec.get(), num_active_qubits());
   }
 
-  /** Sort qubit axes in alphabetical axis order, reverse qubits.
+  /** Apply swaps so that qubit axis assignment satisfy a desired order.
    *
-   * This operation swaps axes in the system state so they are in alphabetical
-   * order. It also reverses the qubit ordering so that it matches the typical
-   * numpy.kron definition (i.e. the last qubit index changes fastest).
+   * This operation swaps axes in the system state so they are in the desired
+   * order.
    *
-   * After this method is called, the qubits are assigned such that reading
-   * qubits of all axes in alphabetical order produces 0,1,2,3,...
+   * After this method is called, the qubits are assigned such that reading axes
+   * for each qubit (starting from qubit 0) produces a sequence agreeing with
+   * the specified order.
    *
-   * Once this method is called the qubit order no longer matches what qsim
-   * expects, so applying matrices to the state will not work as expected.
+   * If more than one qubit is assigned to an axis, that qubit ordering is
+   * preserved.
    *
    * */
-  void c_align() {
+  void order_axes(const std::vector<std::string>& ax_order) {
     //TODO: Proper testing of this method when axes are assigned more than 1
     // qubit.
 
-    // Determine new qubit order so that axes are alphabetical
-    using AxisQubit = std::pair<std::string, unsigned>;
-    std::vector<AxisQubit> sorted_axes_qubits;
-    sorted_axes_qubits.reserve(qubit_axis.size());
-    for (unsigned ii = 0; ii < qubit_axis.size(); ii++)
-      sorted_axes_qubits.push_back({qubit_axis[ii], ii});
+    std::unordered_map<std::string, unsigned> axis_index;
+    for (size_t ii = 0; ii < ax_order.size(); ii++)
+      axis_index.emplace(ax_order[ii], ii);
 
-    std::sort(sorted_axes_qubits.begin(), sorted_axes_qubits.end(),
-              [](const AxisQubit& a, const AxisQubit& b) {
+    // Determine new qubit order so that axes match desired ordering
+    using AxisQubit = std::pair<std::string, unsigned>;
+    std::vector<AxisQubit> sorted_axis_qubits;
+    sorted_axis_qubits.reserve(qubit_axis.size());
+    for (unsigned ii = 0; ii < qubit_axis.size(); ii++)
+      sorted_axis_qubits.push_back({qubit_axis[ii], ii});
+
+    std::sort(sorted_axis_qubits.begin(), sorted_axis_qubits.end(),
+              [this, &axis_index](const AxisQubit& a, const AxisQubit& b) {
                 if (a.first != b.first)
-                  return a.first > b.first;
-                return a.second > b.second;
+                  return axis_index.at(a.first) < axis_index.at(b.first);
+                //qubits belong to same axis. Match order them by appearance
+                // in axis_qubits
+                for (const auto& q : axis_qubits[a.first]) {
+                  if (q == a.second)
+                    return true;
+                  if (q == b.second)
+                    return false;
+                }
+                assert(false); // we should never reach this point
               });
 
-    //Permutation required to sort qubit_axis alphabetically
+    //Permutation required to sort qubit_axis
     std::vector<unsigned> permutation;
     permutation.reserve(qubit_axis.size());
-    for (const auto& ax_q : sorted_axes_qubits)
+    for (const auto& ax_q : sorted_axis_qubits)
       permutation.push_back(ax_q.second);
 
     //Apply qubit swaps and axis swaps so that new order is observed.
     std::function<void(unsigned, unsigned)>
         effect = [this](unsigned q0, unsigned q1) { swap_qubits(q0, q1); };
     apply_permutation(qubit_axis, permutation, effect);
-    //reverse the qubit assignment to match C ordering
-    std::reverse(qubit_axis.begin(), qubit_axis.end());
 
-
-    //update axis_qubits
-    axis_qubits.clear();
-    for (unsigned q = 0; q < qubit_axis.size(); q++)
-      axis_qubits[qubit_axis[q]].push_back(q);
-
-  }
-
-  /** Reverse qubit order to match qsim.
-   *
-   * This method partially undoes the action of c_align() by reassigning
-   * qubits to axes in reverse order. After this is invoked matrix operations
-   * may be applied on the system state again.
-   *
-   * This operation is efficient in that it only reassigned qubits to axes in
-   * reverse order and does not require any manipulation of the state vector.
-   *
-   * */
-  void f_align() {
-
-    //reverse qubit_axis
-    std::reverse(qubit_axis.begin(), qubit_axis.end());
     //update axis_qubits
     axis_qubits.clear();
     for (unsigned q = 0; q < qubit_axis.size(); q++)
