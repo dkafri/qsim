@@ -203,7 +203,7 @@ class KState {
                   return axis_index.at(a.first) < axis_index.at(b.first);
                 //qubits belong to same axis. Match order them by appearance
                 // in axis_qubits
-                for (const auto& q : axis_qubits[a.first]) {
+                for (const auto& q : axis_qubits.at(a.first)) {
                   if (q == a.second)
                     return true;
                   if (q == b.second)
