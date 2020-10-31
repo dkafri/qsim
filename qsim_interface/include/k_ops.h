@@ -76,7 +76,13 @@ struct KOperator {
         swap_sinks(swap_sinks),
         removed_axes(removed_axes) {
     //Validation
-    assert(powl(2, 1 + 2 * qubit_axes.size()) == matrix.size());
+    size_t lhs = size_t{1} << (1 + 2 * qubit_axes.size());
+    if (lhs != matrix.size())
+      throw std::runtime_error(
+          "Matrix size " + std::to_string(matrix.size())
+              + " does not match 2 ^ (1 + 2 * qubit_axes.size()) = "
+              + std::to_string(lhs));
+
     // Elements of added_axes must be in qubit_axes an appropriate number of 
     // times.
     size_t count;
@@ -84,7 +90,13 @@ struct KOperator {
     auto sources_end = swap_sources.end();
     for (const auto& axis: added_axes) {
       count = std::count(added_axes.begin(), added_axes.end(), axis);
-      assert(count == std::count(qubit_axes.begin(), qaxes_end, axis));
+      size_t rhs = std::count(qubit_axes.begin(), qaxes_end, axis);
+      if (count != rhs)
+        throw std::runtime_error(" axis " + axis + " appears "
+                                     + std::to_string(count)
+                                     + " times in added_axes and "
+                                     + std::to_string(rhs)
+                                     + " times in qubit_axes.");
     }
     // Elements of swap_sources must be unique and contained in qubit_axes and
     // not overlap with removed_axes.
