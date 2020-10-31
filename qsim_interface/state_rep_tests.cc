@@ -321,7 +321,7 @@ void test_sort_axes_axis_order() {
   TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 4}));
   TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{0}));
 
-  k_state.c_align();
+  k_state.order_axes({"a", "b", "c"});
 
   TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{0, 1}));
   TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 3}));
@@ -357,7 +357,9 @@ void test_sort_axes_correct_state(size_t init_state) {
     }
   }
 
-  k_state.c_align();
+  k_state.order_axes({"c", "b", "a"});
+  // axes are now in reverse order. Since qsim has reversed qubit ordering,
+  // the actual state is in forward qubit order
 
   auto state = k_state.active_state();
   auto actual = Simulator::StateSpace::GetAmpl(state, init_state);
@@ -385,12 +387,13 @@ void test_f_align_reverse_c_align() {
   vector<string> axes{"a"};
   k_state.permute_and_apply(X, axes);
 
-  k_state.c_align();
+  k_state.order_axes({"d", "c", "b", "a"});
   auto state = k_state.active_state();
   //|10000> -> 16
   TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 16) == Complex{1});
 
-  k_state.f_align(); // Now we can apply matrices again.
+  //reorder axes arbitrarily
+  k_state.order_axes({"b", "a", "d", "c"});
 
   Matrix CNOT{1, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 1, 0, 0, 0, 0, 0,
@@ -399,7 +402,8 @@ void test_f_align_reverse_c_align() {
   axes = {"a", "b"};
   k_state.permute_and_apply(CNOT, axes);
 
-  k_state.c_align();
+  // bring them back to reverse alphabetical order
+  k_state.order_axes({"d", "c", "b", "a"});
   //|11000> -> 16+8=24
   TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 24) == Complex{1});
 
@@ -449,7 +453,7 @@ void test_move_assignment() {
   Matrix X{0, 0, 1, 0, 1, 0, 0, 0};
   vector<string> axes{"b"};
   src.permute_and_apply(X, axes); //State |01> after C alignment.
-  src.c_align();
+  src.order_axes({"b", "a"});
 
   auto state = src.active_state();
   TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 1) == Complex(1, 0));
@@ -457,7 +461,6 @@ void test_move_assignment() {
   KState<Simulator> dest(move(src));
   state = dest.active_state();
   TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 1) == Complex(1, 0));
-
 
 }
 
