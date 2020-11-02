@@ -16,7 +16,8 @@
 /** Representation of deterministic operation on classical registers.*/
 struct COperator {
 
-  std::map<std::vector<size_t>, std::vector<size_t>> data; /** Map storing all
+  using TruthTable = std::map<std::vector<size_t>, std::vector<size_t>>;
+  TruthTable data; /** Map storing all
  * expected input-output combinations.*/
   std::vector<std::string> inputs; /** Input registers. Must have same length
  * as all keys of data.*/
