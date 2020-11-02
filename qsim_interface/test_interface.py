@@ -18,6 +18,9 @@ def test_uint_matrix_import():
   assert np.array_equal(np.arange(2 * 3).reshape(2, 3), mat_np)
 
 
+ComplexType = np.dtype('complex64')
+
+
 def test_sampler_setters():
   max_qubits = 4
   sampler_cpp = pbi.Sampler(3, max_qubits)
@@ -25,7 +28,6 @@ def test_sampler_setters():
   sampler_cpp.set_initial_registers({"a": 1})
   sampler_cpp.set_register_order(["c", "d", "e"])
 
-  ComplexType = np.dtype('complex64')
   # state_vec = np.arange((2 ** max_qubits)).astype(ComplexType)
   state_vec = np.zeros((2 ** max_qubits), ComplexType)
   state_vec[3] = 1.0
@@ -33,3 +35,18 @@ def test_sampler_setters():
   state_vec[0] = 3.0
   axes = ["a", "b", "c"]
   sampler_cpp.bind_initial_state(state_vec, axes)
+
+
+def test_add_kop():
+  max_qubits = 4
+  sampler_cpp = pbi.Sampler(3, max_qubits)
+
+  channels = {
+      (): [[np.eye(2, dtype=ComplexType).ravel(), [], ["a"], [], [], []]]}
+  cond_regs = ()
+  is_recorded = False
+  is_virtual = False
+  label = "ID_a"
+
+  sampler_cpp.add_koperation(channels, cond_regs, is_recorded, label,
+                             is_virtual)

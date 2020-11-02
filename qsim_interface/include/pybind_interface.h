@@ -7,6 +7,7 @@
 
 #include <pybind11/numpy.h>
 #include "sampling.h"
+#include "k_ops.h"
 /** Interface object for collecting samples
  *
  * Constructor requires num_threads and max_qubits.
@@ -92,9 +93,47 @@ class Sampler {
 
   }
 
+  /** Encode and add a KOperation to the operation order.
+   *
+   *
+   * */
+  using NPArray=pybind11::array_t<std::complex<fp_type>>;
+  using AxesV = std::vector<std::string>;
+  typedef std::tuple<NPArray, AxesV, AxesV, AxesV, AxesV, AxesV> KOperatorData;
+  using KChannelData = std::vector<KOperatorData>;
+  using ChannelMapData=std::map<std::vector<size_t>, KChannelData>;
+
+  /** Load a KOperation into the operations order.*/
+  void add_koperation(ChannelMapData& channels,
+                      const AxesV& conditional_registers,
+                      bool is_recorded,
+                      const std::string& label,
+                      bool is_virtual) {
+    // Construct channels map
+    typename KOperation<fp_type>::ChannelMap cmap;
+
+    for (auto& regs_channels : channels) {
+      // Construct the vector of KOperators (KChannel) from the data
+      KChannelData& channel_data = regs_channels.second;
+      KChannel<fp_type> channel_vec;
+      channel_vec.reserve(channel_data.size());
+      for (auto& k_op_data : channel_data)
+        channel_vec.push_back(build_koperator(k_op_data));
+
+      // Assign the KChannel to the register
+      auto& reg_vals = regs_channels.first;
+      cmap.emplace(reg_vals, channel_vec);
+    }
+
+    ops.emplace_back(KOperation<fp_type>(cmap, conditional_registers,
+                                         is_recorded,
+                                         label,
+                                         is_virtual));
+
+  }
+
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/
-
   KState<Simulator> init_kstate; /** Stores initial state vector.*/
   RegisterMap init_registers; /** Initial classical registers */
   std::vector<Operation<fp_type>> ops; /** Operations to sample over.*/
@@ -103,6 +142,23 @@ class Sampler {
  * This is used to determine which virtual registers are recorded and also the
  * output array.*/
 
+  static inline KOperator<fp_type> build_koperator(KOperatorData& data) {
+    //First argument is a numpy array which we need to parse as a vector
+    //This always makes a copy.
+    NPArray& matrix_arr = std::get<0>(data);
+    pybind11::buffer_info buffer = matrix_arr.request();
+    auto ptr = static_cast<fp_type*>(buffer.ptr);
+    //Write complex array as float array with twice as many elements
+    qsim::Matrix<fp_type> matrix(ptr, ptr + 2 * buffer.size);
+
+    return KOperator<fp_type>(matrix,
+                              std::get<1>(data),
+                              std::get<2>(data),
+                              std::get<3>(data),
+                              std::get<4>(data),
+                              std::get<5>(data));
+
+  }
 
 };
 

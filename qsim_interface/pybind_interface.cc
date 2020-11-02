@@ -53,15 +53,18 @@ PYBIND11_MODULE(pybind_interface, m) {
   using Sampler = Sampler<Simulator>;
   py::class_<Sampler>(m, "Sampler")
       .def(py::init<size_t, size_t>()) //bind constructor
-      .def("set_random_seed", &Sampler::set_random_seed) //bind methods
-      .def("set_initial_registers", &Sampler::set_initial_registers)
-      .def("set_register_order", &Sampler::set_register_order)
-      .def("bind_initial_state", &Sampler::bind_initial_state);
+      .def("set_random_seed",
+           &Sampler::set_random_seed,
+           py::arg("seed")) //bind methods
+      .def("set_initial_registers",
+           &Sampler::set_initial_registers,
+           py::arg("registers"))
+      .def("set_register_order", &Sampler::set_register_order,
+           py::arg("registers"))
+      .def("bind_initial_state", &Sampler::bind_initial_state,
+           py::arg("array"), py::arg("axes"))
+      .def("add_koperation", &Sampler::add_koperation,
+           py::arg("channels_map"), py::arg("conditional_registers"),
+           py::arg("is_recorded"), py::arg("label"), py::arg("is_virtual"));
 
-//  m.def("set_initial_state",
-//        &set_initial_state,
-//        "Set initial state vector and axis labels",
-//        py::arg("sampler"),
-//        py::arg("array"),
-//        py::arg("axes"));
 }
