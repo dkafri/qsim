@@ -55,10 +55,11 @@ int main() {
   double p_error = 0.1;
   string m_observe = "a_observed";
   COperator nothing{{{{0}, {0}},
-                     {{1}, {1}}}, {m_true}, {m_observe}, {m_observe}};
+                     {{1}, {1}}}, {m_true}, {m_observe}};
   COperator flip{{{{0}, {1}},
-                  {{1}, {0}}}, {m_true}, {m_observe}, {m_observe}};
-  ops.emplace_back(COperation({{nothing, flip}, {1 - p_error, p_error}}));
+                  {{1}, {0}}}, {m_true}, {m_observe}};
+  ops.emplace_back(COperation({{nothing, flip}, {1 - p_error, p_error}},
+                              {m_observe}));
 
   //Virtual Z on "a", then virtual measurement of "a" in X basis
   KOperator<fp_type> VZ{{1, 0, 0, 0,

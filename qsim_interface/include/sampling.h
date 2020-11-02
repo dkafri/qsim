@@ -113,8 +113,8 @@ inline void sample_op(Operation<fp_type>& op,
 static auto IsVirtual = [](const auto& op) { return op.is_virtual; };
 
 template<typename fp_type>
-static inline bool is_virtual(const Operation<fp_type>& current_op) {
-  return mpark::visit(IsVirtual, current_op);
+inline bool is_virtual(const Operation<fp_type>& op) {
+  return mpark::visit(IsVirtual, op);
 }
 
 /** \brief Carry out a sequence of sampling operations on a state.
@@ -206,7 +206,5 @@ RegisterMap sample_sequence(std::vector<Operation<fp_type>>& ops,
   return registers;
 
 }
-
-
 
 #endif //QSIM_INTERFACE_INCLUDE_SAMPLING_H_

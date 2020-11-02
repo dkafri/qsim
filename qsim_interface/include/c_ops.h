@@ -24,11 +24,9 @@ struct COperator {
   std::vector<std::string> outputs; /** Outputs registers. Must have same length
  * as all values of data. If not outputs are specified then this operation
  * deletes all input registers.*/
-  std::set<std::string> added; /** Output registers that are created by
- * this operation. Each element must be a subset of outputs.*/
 
   /** assert that data has required structure.*/
-  void validate() const {
+  void validate(const std::set<std::string>& added) const {
     for (const auto& key_value : data) {
       assert(key_value.first.size() == inputs.size());
       assert(key_value.second.size() == outputs.size());
@@ -53,16 +51,12 @@ struct COperator {
     for (auto&& reg  :inputs)
       input_vec.push_back(registers.at(reg));
 
-    //Add registers
-    for (auto&& reg: added)
-      registers.emplace(reg, 0);
-
     //Write output values to register
     const std::vector<size_t>& output_vec = data.at(input_vec);
     auto val_ptr = output_vec.begin();
     for (auto reg_ptr = outputs.begin(); reg_ptr != outputs.end();
          ++reg_ptr, ++val_ptr)
-      registers.at(*reg_ptr) = *val_ptr;
+      registers[*reg_ptr] = *val_ptr;
   }
 };
 
@@ -74,7 +68,7 @@ struct CChannel {
  * non-negative and sum to 1.*/
 
   /** Assert that data satisfies requirements.*/
-  void validate() const {
+  void validate(const std::set<std::string>& added) const {
     assert(operators.size() == probs.size());
     if (operators.empty())
       return;
@@ -87,7 +81,7 @@ struct CChannel {
 
     assert(fabs(1.0 - sum) < 1e-12);
     for (const auto& op:operators)
-      op.validate();
+      op.validate(added);
   }
 
   /** Apply this operation to a set of classical registers.*/
@@ -120,6 +114,8 @@ struct COperation {
  * Classical registers on which the operation is conditioned. Each key of
  * channels should have the same length as conditional_registers. The
  * register values are referenced in the specified order.*/
+  std::set<std::string> added; /** Output registers that are created by
+ * this operation. This must be consistent for all channels.*/
   bool is_virtual; /** Whether the operation is virtual. Virtual
  * operations have a temporary effect on the simulation and are back-tracked
  * when a non-virtual operation is met.*/
@@ -128,28 +124,37 @@ struct COperation {
   void validate() const {
     for (const auto& key_val : channels) {
       assert(key_val.first.size() == conditional_registers.size());
-      key_val.second.validate();
+      key_val.second.validate(added);
     }
   }
 
   /** Constructor for a single deterministic operation.*/
   //If I instead initialized in the function body, we would get errors. Why?
-  explicit COperation(const COperator& op, bool is_virtual = false)
-      : is_virtual(is_virtual), channels{{{}, CChannel{{op}, {1.0}}}} {
+  explicit COperation(const COperator& op,
+                      std::set<std::string> added,
+                      bool is_virtual = false)
+      : is_virtual(is_virtual),
+        channels{{{}, CChannel{{op}, {1.0}}}},
+        added(std::move(added)) {
     validate();
   }
 
   /** Constructor for an unconditioned stochastic operation.*/
-  explicit COperation(const CChannel& channel, bool is_virtual = false)
-      : is_virtual(is_virtual), channels{{{}, channel}} { validate(); }
+  explicit COperation(const CChannel& channel,
+                      std::set<std::string> added,
+                      bool is_virtual = false)
+      : is_virtual(is_virtual), channels{{{}, channel}},
+        added(std::move(added)) { validate(); }
 
   /** Generic constructor */
   COperation(ChannelMap cmap,
              std::vector<std::string> conditional_registers,
+             std::set<std::string> added,
              bool is_virtual = false)
       : channels(std::move(cmap)),
         conditional_registers(std::move(conditional_registers)),
-        is_virtual(is_virtual) { validate(); }
+        is_virtual(is_virtual),
+        added(std::move(added)) { validate(); }
 
   /** Apply this operation to a set of classical registers.*/
   void apply(std::unordered_map<std::string, size_t>& registers,
