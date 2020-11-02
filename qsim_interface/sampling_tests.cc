@@ -103,10 +103,10 @@ void test_conditional_bit_flip() {
   RegisterMap init_reg{{"X", 1}};
 
   //Set classical register Y to 0 or 1 with even odds
-  COperator set_0{{{{}, {0}}}, {}, {"Y"}, {"Y"}};
-  COperator set_1{{{{}, {1}}}, {}, {"Y"}, {"Y"}};
+  COperator set_0{{{{}, {0}}}, {}, {"Y"}};
+  COperator set_1{{{{}, {1}}}, {}, {"Y"}};
 
-  ops.emplace_back(COperation(CChannel{{set_0, set_1}, {0.5, 0.5}}));
+  ops.emplace_back(COperation(CChannel{{set_0, set_1}, {0.5, 0.5}}, {"Y"}));
 
   // Flip qubit conditioned on AND of X and Y
   KOperator<fp_type> X{{0, 0, 1, 0,
@@ -172,8 +172,8 @@ void test_virtual_operations_no_effect() {
   //virtual copy of a into a new register
   string vm_label2 = "b (V)";
   COperator cp{{{{0}, {1}},
-                {{1}, {1}}}, {vm_label}, {vm_label2}, {vm_label2}};
-  ops.emplace_back(COperation{cp, true});
+                {{1}, {1}}}, {vm_label}, {vm_label2}};
+  ops.emplace_back(COperation{cp, {vm_label2}, true});
 
   random_device rd;
   std::mt19937 rgen(rd());
