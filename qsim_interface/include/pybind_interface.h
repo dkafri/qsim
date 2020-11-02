@@ -6,6 +6,8 @@
 #define QSIM_INTERFACE_INCLUDE_PYBIND_INTERFACE_H_
 
 #include <pybind11/numpy.h>
+
+#include <utility>
 #include "sampling.h"
 #include "k_ops.h"
 /** Interface object for collecting samples
@@ -131,12 +133,9 @@ class Sampler {
                                          is_virtual));
   }
 
-//  using NPUArray=pybind11::array_t<uint8_t>;
-//  using TruthTableData = std::map<std::vector<size_t>, NPUArray>;
   using COperatorData = std::tuple<COperator::TruthTable,
                                    StrV,
-                                   StrV,
-                                   std::set<std::string>>;
+                                   StrV>;
   using CChannelData = std::tuple<std::vector<COperatorData>,
                                   std::vector<double>>;
   using CChannelMapData = std::map<std::vector<size_t>, CChannelData>;
@@ -144,6 +143,7 @@ class Sampler {
   /** Load a COperation into the operations order*/
   void add_coperation(CChannelMapData& channels_data,
                       const StrV& conditional_registers,
+                      std::set<std::string> added,
                       bool is_virtual) {
 
     //construct the channel map
@@ -156,7 +156,7 @@ class Sampler {
     }
 
     ops.emplace_back(COperation(channel_map,
-                                conditional_registers,
+                                conditional_registers, std::move(added),
                                 is_virtual));
 
   }
@@ -197,8 +197,7 @@ class Sampler {
     for (auto& c_ops_data : c_ops_datas)
       c_ops.push_back(COperator{std::get<0>(c_ops_data),
                                 std::get<1>(c_ops_data),
-                                std::get<2>(c_ops_data),
-                                std::get<3>(c_ops_data)});
+                                std::get<2>(c_ops_data)});
 
     std::vector<double>& probs = std::get<1>(data);
 

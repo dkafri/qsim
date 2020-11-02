@@ -61,10 +61,10 @@ def test_add_cop():
   copy_flip = {(0,): (1,),
                (1,): (0,)}
 
-  channels_map = {(0,): ([[copy_data, ("a",), ("b",), {"b"}],
-                          [copy_flip, ("a",), ("b",), {"b"}]], [.8, .2]),
-                  (1,): ([[copy_data, ("a",), ("b",), {"b"}],
-                          [copy_flip, ("a",), ("b",), {"b"}]], [.6, .4])
+  channels_map = {(0,): ([[copy_data, ("a",), ("b",)],
+                          [copy_flip, ("a",), ("b",)]], [.8, .2]),
+                  (1,): ([[copy_data, ("a",), ("b",)],
+                          [copy_flip, ("a",), ("b",)]], [.6, .4])
                   }
 
-  sampler_cpp.add_coperation(channels_map, ("c",), False)
+  sampler_cpp.add_coperation(channels_map, ("c",), {"b"}, False)
