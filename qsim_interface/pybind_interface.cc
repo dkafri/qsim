@@ -70,6 +70,7 @@ PYBIND11_MODULE(pybind_interface, m) {
            &Sampler::add_coperation,
            py::arg("channels_map"),
            py::arg("conditional_registers"),
+           py::arg("added_registers"),
            py::arg("is_virtual"));
 
 }
