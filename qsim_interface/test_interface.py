@@ -56,16 +56,15 @@ def test_add_cop():
   max_qubits = 4
   sampler_cpp = pbi.Sampler(3, max_qubits)
 
-  def c_op_data(table):
-    return table, ("a",), ("b",), {"b"}
+  copy_data = {(0,): (0,),
+               (1,): (1,)}
+  copy_flip = {(0,): (1,),
+               (1,): (0,)}
 
-  channels_map = {
-      (0,): ((c_op_data({(0,): (0,), (1,): (1,)}),
-              c_op_data({(0,): (1,), (1,): (0,)})),
-             (0.8, 0.2)),
-      (1,): ((c_op_data({(0,): (0,), (1,): (1,)}),
-              c_op_data({(0,): (1,), (1,): (0,)})),
-             (0.6, 0.4))
-  }
+  channels_map = {(0,): ([[copy_data, ("a",), ("b",), {"b"}],
+                          [copy_flip, ("a",), ("b",), {"b"}]], [.8, .2]),
+                  (1,): ([[copy_data, ("a",), ("b",), {"b"}],
+                          [copy_flip, ("a",), ("b",), {"b"}]], [.6, .4])
+                  }
 
   sampler_cpp.add_coperation(channels_map, ("c",), False)
