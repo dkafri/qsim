@@ -65,6 +65,11 @@ PYBIND11_MODULE(pybind_interface, m) {
            py::arg("array"), py::arg("axes"))
       .def("add_koperation", &Sampler::add_koperation,
            py::arg("channels_map"), py::arg("conditional_registers"),
-           py::arg("is_recorded"), py::arg("label"), py::arg("is_virtual"));
+           py::arg("is_recorded"), py::arg("label"), py::arg("is_virtual"))
+      .def("add_coperation",
+           &Sampler::add_coperation,
+           py::arg("channels_map"),
+           py::arg("conditional_registers"),
+           py::arg("is_virtual"));
 
 }

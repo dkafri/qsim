@@ -97,15 +97,15 @@ class Sampler {
    *
    *
    * */
-  using NPArray=pybind11::array_t<std::complex<fp_type>>;
-  using AxesV = std::vector<std::string>;
-  typedef std::tuple<NPArray, AxesV, AxesV, AxesV, AxesV, AxesV> KOperatorData;
+  using NPCArray=pybind11::array_t<std::complex<fp_type>>;
+  using StrV = std::vector<std::string>;
+  typedef std::tuple<NPCArray, StrV, StrV, StrV, StrV, StrV> KOperatorData;
   using KChannelData = std::vector<KOperatorData>;
   using ChannelMapData=std::map<std::vector<size_t>, KChannelData>;
 
   /** Load a KOperation into the operations order.*/
   void add_koperation(ChannelMapData& channels,
-                      const AxesV& conditional_registers,
+                      const StrV& conditional_registers,
                       bool is_recorded,
                       const std::string& label,
                       bool is_virtual) {
@@ -129,6 +129,35 @@ class Sampler {
                                          is_recorded,
                                          label,
                                          is_virtual));
+  }
+
+//  using NPUArray=pybind11::array_t<uint8_t>;
+//  using TruthTableData = std::map<std::vector<size_t>, NPUArray>;
+  using COperatorData = std::tuple<COperator::TruthTable,
+                                   StrV,
+                                   StrV,
+                                   std::set<std::string>>;
+  using CChannelData = std::tuple<std::vector<COperatorData>,
+                                  std::vector<double>>;
+  using CChannelMapData = std::map<std::vector<size_t>, CChannelData>;
+
+  /** Load a COperation into the operations order*/
+  void add_coperation(CChannelMapData& channels_data,
+                      const StrV& conditional_registers,
+                      bool is_virtual) {
+
+    //construct the channel map
+    COperation::ChannelMap channel_map;
+
+    for (auto& cond_reg_channel_data : channels_data) {
+      auto& cond_reg = cond_reg_channel_data.first;
+      auto& channel_data = cond_reg_channel_data.second;
+      channel_map.emplace(cond_reg, build_cchannel(channel_data));
+    }
+
+    ops.emplace_back(COperation(channel_map,
+                                conditional_registers,
+                                is_virtual));
 
   }
 
@@ -145,7 +174,7 @@ class Sampler {
   static inline KOperator<fp_type> build_koperator(KOperatorData& data) {
     //First argument is a numpy array which we need to parse as a vector
     //This always makes a copy.
-    NPArray& matrix_arr = std::get<0>(data);
+    NPCArray& matrix_arr = std::get<0>(data);
     pybind11::buffer_info buffer = matrix_arr.request();
     auto ptr = static_cast<fp_type*>(buffer.ptr);
     //Write complex array as float array with twice as many elements
@@ -157,8 +186,25 @@ class Sampler {
                               std::get<3>(data),
                               std::get<4>(data),
                               std::get<5>(data));
-
   }
+
+  static inline CChannel build_cchannel(CChannelData& data) {
+
+    std::vector<COperatorData>& c_ops_datas = std::get<0>(data);
+    std::vector<COperator> c_ops;
+    c_ops.reserve(c_ops_datas.size());
+
+    for (auto& c_ops_data : c_ops_datas)
+      c_ops.push_back(COperator{std::get<0>(c_ops_data),
+                                std::get<1>(c_ops_data),
+                                std::get<2>(c_ops_data),
+                                std::get<3>(c_ops_data)});
+
+    std::vector<double>& probs = std::get<1>(data);
+
+    return CChannel{c_ops, probs};
+
+  };
 
 };
 

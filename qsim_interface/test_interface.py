@@ -42,11 +42,30 @@ def test_add_kop():
   sampler_cpp = pbi.Sampler(3, max_qubits)
 
   channels = {
-      (): [[np.eye(2, dtype=ComplexType).ravel(), [], ["a"], [], [], []]]}
-  cond_regs = ()
+      (0,): [[np.eye(2, dtype=ComplexType).ravel(), [], ["a"], [], [], []]]}
+  cond_regs = ("conditional register",)
   is_recorded = False
   is_virtual = False
   label = "ID_a"
 
   sampler_cpp.add_koperation(channels, cond_regs, is_recorded, label,
                              is_virtual)
+
+
+def test_add_cop():
+  max_qubits = 4
+  sampler_cpp = pbi.Sampler(3, max_qubits)
+
+  def c_op_data(table):
+    return table, ("a",), ("b",), {"b"}
+
+  channels_map = {
+      (0,): ((c_op_data({(0,): (0,), (1,): (1,)}),
+              c_op_data({(0,): (1,), (1,): (0,)})),
+             (0.8, 0.2)),
+      (1,): ((c_op_data({(0,): (0,), (1,): (1,)}),
+              c_op_data({(0,): (1,), (1,): (0,)})),
+             (0.6, 0.4))
+  }
+
+  sampler_cpp.add_coperation(channels_map, ("c",), False)
