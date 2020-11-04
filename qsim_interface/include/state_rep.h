@@ -24,11 +24,11 @@ inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
                                     qsim::Matrix<fp_type>& matrix,
                                     std::vector<std::string>& qubit_axes);
 
-template<typename T>
+template<typename T, typename Fun>
 void static inline apply_permutation(
     std::vector<T>& v,
     std::vector<unsigned>& indices,
-    const std::function<void(unsigned, unsigned)>& side_effect
+    Fun side_effect
 );
 
 /* Data representation of a state vector with variable axis dimensions.
@@ -127,7 +127,7 @@ class KState {
         max_qubits(0),
       //We need to initialize state_vec because State has no trivial
       // constructor.
-        state_vec(StateSpace(0).Create(0)) {
+        state_vec(StateSpace::Null()) {
     *this = std::move(k_state);
   }
 
@@ -148,14 +148,8 @@ class KState {
     }
 
     //copy axis_qubits and qubit_axis
-    axis_qubits.clear();
-    qubit_axis.clear();
-    for (const auto& axis : source.qubit_axis) {
-      qubit_axis.push_back(axis);
-    }
-    for (const auto& key_value : source.axis_qubits) {
-      axis_qubits[key_value.first] = key_value.second;
-    }
+    axis_qubits = source.axis_qubits;
+    qubit_axis = source.qubit_axis;
     assert(num_active_qubits() == source.num_active_qubits());
 
     //copy state vector
@@ -219,15 +213,13 @@ class KState {
       permutation.push_back(ax_q.second);
 
     //Apply qubit swaps and axis swaps so that new order is observed.
-    std::function<void(unsigned, unsigned)>
-        effect = [this](unsigned q0, unsigned q1) { swap_qubits(q0, q1); };
+    auto effect = [this](unsigned q0, unsigned q1) { swap_qubits(q0, q1); };
     apply_permutation(qubit_axis, permutation, effect);
 
     //update axis_qubits
     axis_qubits.clear();
     for (unsigned q = 0; q < qubit_axis.size(); q++)
       axis_qubits[qubit_axis[q]].push_back(q);
-
   }
 
   /** Allocate a qubit to an axis.
@@ -556,11 +548,11 @@ inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
 // Apply a permutation to a vector using swap operations. For each swap between
 // two indices in the vector, apply a side effect conditioned on those indices.
 // Source: https://devblogs.microsoft.com/oldnewthing/20170102-00/?p=95095
-template<typename T>
+template<typename T, typename Fun>
 void static inline apply_permutation(
     std::vector<T>& v,
     std::vector<unsigned>& indices,
-    const std::function<void(unsigned, unsigned)>& side_effect
+    Fun side_effect
 ) {
   using std::swap; // to permit Koenig lookup
   for (unsigned i = 0; i < indices.size(); i++) {
