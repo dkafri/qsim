@@ -10,6 +10,28 @@
 #include <utility>
 #include "sampling.h"
 #include "k_ops.h"
+
+/** Wrapper class for a buffer object that can be wrapped by a numpy array
+ * matrix.*/
+template<typename fp_type>
+class MatrixBuffer {
+ public:
+  MatrixBuffer(size_t rows, size_t cols)
+      : m_rows(rows), m_cols(cols), m_data(cols * rows) {};
+  fp_type* data() { return m_data.data(); }
+  size_t rows() const { return m_rows; }
+  size_t cols() const { return m_cols; }
+
+  void set_value(size_t row, size_t col, fp_type val) {
+    m_data.at(row * m_cols + col) = val;
+  }
+
+ private:
+  size_t m_rows, m_cols;
+  std::vector<fp_type> m_data;
+
+};
+
 /** Interface object for collecting samples
  *
  * Constructor requires num_threads and max_qubits.
@@ -161,6 +183,43 @@ class Sampler {
 
   }
 
+  using RegisterType = uint8_t;
+  /** Collect samples from simulation.*/
+  MatrixBuffer<RegisterType> sample_states(size_t num_samples) {
+    KState<Simulator> k_state(init_kstate);
+    KState<Simulator> tmp_state(init_kstate);
+    RegisterMap final_registers;
+
+    std::set<std::string> virtual_regs;
+    // Determine which virtual registers need to be recorded
+    for (const auto& op : ops) {
+      if (is_virtual(op)) {
+        const auto& regs = saved_virtuals(op);
+        virtual_regs.insert(regs.begin(), regs.end());
+      }
+    }
+
+    MatrixBuffer<RegisterType> register_mat(num_samples, register_order.size());
+
+    for (size_t ii = 0; ii < num_samples; ii++) {
+
+      k_state.copy_from(init_kstate);
+      final_registers = sample_sequence(ops,
+                                        k_state,
+                                        tmp_state,
+                                        init_registers,
+                                        rgen,
+                                        virtual_regs);
+
+      for (size_t jj = 0; jj < register_order.size(); jj++) {
+        register_mat.set_value(ii,
+                               jj,
+                               final_registers.at(register_order.at(jj)));
+      }
+    }
+
+    return register_mat;
+  }
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/
   KState<Simulator> init_kstate; /** Stores initial state vector.*/

@@ -11,19 +11,6 @@
 
 namespace py = pybind11;
 
-template<typename fp_type>
-class Matrix {
- public:
-  Matrix(size_t rows, size_t cols)
-      : m_rows(rows), m_cols(cols), m_data(cols * rows) {};
-  fp_type* data() { return m_data.data(); }
-  size_t rows() const { return m_rows; }
-  size_t cols() const { return m_cols; }
- private:
-  size_t m_rows, m_cols;
-  std::vector<fp_type> m_data;
-
-};
 
 ///** Load a numpy array as an initial state vector to a Sampler.*/
 
@@ -32,21 +19,7 @@ PYBIND11_MODULE(pybind_interface, m) {
   m.doc() = "pybind11 example plugin"; // optional module docstring
 
 
-  using RegisterType = uint8_t;
-  py::class_<Matrix<RegisterType>>(m, "UIntMatrix", py::buffer_protocol())
-      .def_buffer([](Matrix<RegisterType>& m) -> py::buffer_info {
-        return py::buffer_info(
-            m.data(),                               /* Pointer to buffer */
-            sizeof(RegisterType),                          /* Size of one scalar */
-            py::format_descriptor<RegisterType>::format(), /* Python struct-style format descriptor */
-            2,                                      /* Number of dimensions */
-            {m.rows(), m.cols()},                 /* Buffer dimensions */
-            {sizeof(RegisterType)
-                 * m.cols(),             /* Strides (in bytes) for each index */
-             sizeof(RegisterType)}
-        );
-      })
-      .def(py::init<size_t, size_t>()); // bind constructor
+
 
 
   using Simulator = qsim::Simulator<qsim::For>;
@@ -71,6 +44,25 @@ PYBIND11_MODULE(pybind_interface, m) {
            py::arg("channels_map"),
            py::arg("conditional_registers"),
            py::arg("added_registers"),
-           py::arg("is_virtual"));
+           py::arg("is_virtual"))
+      .def("sample_states", &Sampler::sample_states,
+           py::arg("num_samples"));
+
+
+  using RegisterType = Sampler::RegisterType;
+  py::class_<MatrixBuffer<RegisterType>>(m, "UIntMatrix", py::buffer_protocol())
+      .def_buffer([](MatrixBuffer<RegisterType>& m) -> py::buffer_info {
+        return py::buffer_info(
+            m.data(),                               /* Pointer to buffer */
+            sizeof(RegisterType),                          /* Size of one scalar */
+            py::format_descriptor<RegisterType>::format(), /* Python struct-style format descriptor */
+            2,                                      /* Number of dimensions */
+            {m.rows(), m.cols()},                 /* Buffer dimensions */
+            {sizeof(RegisterType)
+                 * m.cols(),             /* Strides (in bytes) for each index */
+             sizeof(RegisterType)}
+        );
+      })
+      .def(py::init<size_t, size_t>()); // bind constructor
 
 }
