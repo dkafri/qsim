@@ -117,6 +117,32 @@ inline bool is_virtual(const Operation<fp_type>& op) {
   return mpark::visit(IsVirtual, op);
 }
 
+template<typename fp_type>
+struct SavedVirtualsVisitor {
+  using RegisterSet = std::set<std::string>;
+
+  RegisterSet operator()(const KOperation<fp_type>& k_op) const {
+    if (k_op.is_recorded && k_op.is_virtual)
+      return RegisterSet({k_op.label});
+    else
+      return RegisterSet{};
+  }
+
+  RegisterSet operator()(const COperation& c_op) const {
+    //I need to push added, inputs, outputs out of COperator and into
+    // COperation.
+    if (c_op.is_virtual)
+      return c_op.added;
+    else
+      return RegisterSet{};
+  }
+};
+
+template<typename fp_type>
+std::set<std::string> saved_virtuals(const Operation<fp_type>& op) {
+  return mpark::visit(SavedVirtualsVisitor<fp_type>(), op);
+}
+
 /** \brief Carry out a sequence of sampling operations on a state.
  *
  * @param ops - Sequence of operations to sample from.
