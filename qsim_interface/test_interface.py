@@ -26,12 +26,12 @@ ComplexType = np.dtype('complex64')
 
 def test_sampler_setters():
   max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits, True)
+  sampler_cpp = pbi.Sampler(3, True)
   sampler_cpp.set_random_seed(22)
   sampler_cpp.set_initial_registers({"a": 1})
   sampler_cpp.set_register_order(["c", "d", "e"])
 
-  # state_vec = np.arange((2 ** max_qubits)).astype(ComplexType)
+  # state_vec = np.arange((2 ** max_qubits_)).astype(ComplexType)
   state_vec = np.zeros((2 ** max_qubits), ComplexType)
   state_vec[3] = 1.0
   state_vec[5] = 2.0
@@ -41,8 +41,7 @@ def test_sampler_setters():
 
 
 def test_add_kop():
-  max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits, True)
+  sampler_cpp = pbi.Sampler(3, True)
 
   channels = {
       (0,): [[np.eye(2, dtype=ComplexType).ravel(), [], ["a"], [], [], []]]}
@@ -56,8 +55,7 @@ def test_add_kop():
 
 
 def test_add_cop():
-  max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits, True)
+  sampler_cpp = pbi.Sampler(3, True)
 
   copy_data = {(0,): (0,),
                (1,): (1,)}
@@ -75,13 +73,13 @@ def test_add_cop():
 
 def test_samples():
   max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits, True)
+  sampler_cpp = pbi.Sampler(3, True)
   sampler_cpp.set_random_seed(11)
   cond_reg = "R"
   sampler_cpp.set_initial_registers({cond_reg: 0})
   labels = [cond_reg]
 
-  # state_vec = np.arange((2 ** max_qubits)).astype(ComplexType)
+  # state_vec = np.arange((2 ** max_qubits_)).astype(ComplexType)
   state_vec = np.zeros((2 ** max_qubits), ComplexType)
   state_vec[0] = 1.0
   axes = ["a", "b", "c"]
