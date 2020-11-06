@@ -60,13 +60,14 @@ class Sampler {
   using State = typename StateSpace::State;
 
   size_t max_qubits; /** Sets max required memory for representing state.*/
+  bool consistent_axis_order;
 
   /** Basic constructor */
   // We do not allocate memory for the constructed initial state since we
   // assume memory will be externally allocated.
-  Sampler(size_t num_threads, size_t max_qubits)
+  Sampler(size_t num_threads, size_t max_qubits, bool consistent_axis_order)
       : num_threads(num_threads),
-        max_qubits(max_qubits),
+        max_qubits(max_qubits), consistent_axis_order(consistent_axis_order),
         init_kstate(num_threads, 1, std::vector<std::string>{}) {
     std::random_device rd;
     rgen = std::mt19937(rd());
@@ -185,9 +186,13 @@ class Sampler {
   }
 
   using RegisterType = uint8_t;
+  using OutArrays = std::vector<pybind11::array_t<fp_type>>;
+  using AxisOrders = std::vector<std::vector<std::string>>;
+  using SamplingOutput = std::tuple<MatrixBuffer<RegisterType>,
+                                    OutArrays,
+                                    AxisOrders>;
   /** Collect samples from simulation.*/
-  std::pair<MatrixBuffer<RegisterType>,
-            std::vector<pybind11::array_t<fp_type>>> sample_states(size_t num_samples) {
+  SamplingOutput sample_states(size_t num_samples) {
     KState<Simulator> k_state(init_kstate);
     KState<Simulator> tmp_state(init_kstate);
     RegisterMap final_registers;
@@ -204,6 +209,12 @@ class Sampler {
     MatrixBuffer<RegisterType> register_mat(num_samples, register_order.size());
     std::vector<pybind11::array_t<fp_type>> out_arrays;
     out_arrays.reserve(num_samples);
+
+    AxisOrders qubit_axis_orders;
+    if (!consistent_axis_order)
+      qubit_axis_orders.reserve(num_samples);
+    else
+      qubit_axis_orders.reserve(1);
 
     for (size_t ii = 0; ii < num_samples; ii++) {
 
@@ -222,11 +233,6 @@ class Sampler {
                                final_registers.at(register_order.at(jj)));
       }
 
-      // Alphabetize axes for consistent output ordering. We use reverse order
-      // because of qsim convention.
-      std::vector<std::string> axis_order = k_state.qubit_axis;
-      std::sort(axis_order.rbegin(), axis_order.rend());
-      k_state.order_axes(axis_order);
 
       //Allocate output array
       State state = k_state.active_state();
@@ -247,13 +253,22 @@ class Sampler {
       //Encapsulate the data in a pybind array object. First use a capsule
       // wrapper to ensure the object is not garbage collected immediately.
       auto capsule = pybind11::capsule(
-          fsv, [](void* data) { delete [] reinterpret_cast<fp_type*>(data); });
+          fsv, [](void* data) { delete[] reinterpret_cast<fp_type*>(data); });
 
       out_arrays.push_back(pybind11::array_t<fp_type>(fsv_size, fsv, capsule));
 
+      //record axis order (reverse to account for qsim convention)
+      // if axis order is always the same just do this the first time
+      if (!consistent_axis_order || ii == 1) {
+        const auto
+            & axis_order = std::vector<std::string>(k_state.qubit_axis.rbegin(),
+                                                    k_state.qubit_axis.rend());
+        qubit_axis_orders.push_back(axis_order);
+      }
+
     }
 
-    return std::make_pair(register_mat, out_arrays);
+    return std::make_tuple(register_mat, out_arrays, qubit_axis_orders);
   }
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/

@@ -1,3 +1,6 @@
+from collections import Counter
+from functools import reduce
+
 import numpy as np
 import build.pybind_interface as pbi
 
@@ -23,7 +26,7 @@ ComplexType = np.dtype('complex64')
 
 def test_sampler_setters():
   max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits)
+  sampler_cpp = pbi.Sampler(3, max_qubits, True)
   sampler_cpp.set_random_seed(22)
   sampler_cpp.set_initial_registers({"a": 1})
   sampler_cpp.set_register_order(["c", "d", "e"])
@@ -39,7 +42,7 @@ def test_sampler_setters():
 
 def test_add_kop():
   max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits)
+  sampler_cpp = pbi.Sampler(3, max_qubits, True)
 
   channels = {
       (0,): [[np.eye(2, dtype=ComplexType).ravel(), [], ["a"], [], [], []]]}
@@ -54,7 +57,7 @@ def test_add_kop():
 
 def test_add_cop():
   max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits)
+  sampler_cpp = pbi.Sampler(3, max_qubits, True)
 
   copy_data = {(0,): (0,),
                (1,): (1,)}
@@ -72,7 +75,7 @@ def test_add_cop():
 
 def test_samples():
   max_qubits = 4
-  sampler_cpp = pbi.Sampler(3, max_qubits)
+  sampler_cpp = pbi.Sampler(3, max_qubits, True)
   sampler_cpp.set_random_seed(11)
   cond_reg = "R"
   sampler_cpp.set_initial_registers({cond_reg: 0})
@@ -130,7 +133,7 @@ def test_samples():
 
   sampler_cpp.set_register_order(labels)
 
-  reg_mat_cpp, out_arrays = sampler_cpp.sample_states(10)
+  reg_mat_cpp, out_arrays, axis_orders = sampler_cpp.sample_states(10)
   out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
   reg_mat = np.array(reg_mat_cpp, copy=False)
 
@@ -141,6 +144,7 @@ def test_samples():
   assert np.array_equal(reg_mat[:, 1], reg_mat[:, 2])
 
   # b was flipped exactly when measure_a and flip_a are true
+  assert axis_orders == [["b", "c"]]
   state_00 = np.array([1, 0, 0, 0], ComplexType)
   state_10 = np.array([0, 0, 1, 0], ComplexType)
   for final_arr, measure_outcome in zip(out_arrays, reg_mat[:, 1]):
