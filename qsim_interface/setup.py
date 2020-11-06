@@ -1,5 +1,6 @@
 from setuptools import setup
 from pybind11.setup_helpers import Pybind11Extension, build_ext, ParallelCompile
+from _version import __version__
 
 description = 'qsim backend interface for kraus_sim simulator'
 
@@ -22,7 +23,7 @@ ext_modules = [
 
 setup(
     name='qsim_interface',
-    version='0.1.0',
+    version=__version__,
     author='dkafri@',
     python_requires='>=3.6',
     install_requires=requirements,
