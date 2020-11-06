@@ -48,6 +48,9 @@ class KState {
   using State = typename StateSpace::State;
   using fp_type = typename Simulator::fp_type;
 
+  std::vector<std::string>
+      qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
+
   // Methods
   KState() = delete;
 
@@ -375,8 +378,7 @@ class KState {
   unsigned max_qubits;
   using AxisQubits = std::unordered_map<std::string, std::list<unsigned>>;
   AxisQubits axis_qubits; /**Qubits allocated to each axis.*/
-  std::vector<std::string>
-      qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
+
 
   // Private methods
   /** Simulator appropriate to current vector size.*/
