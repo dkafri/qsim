@@ -57,6 +57,7 @@ class Sampler {
  public:
   using fp_type = typename Simulator::fp_type;
   using StateSpace = typename Simulator::StateSpace;
+  using State = typename StateSpace::State;
 
   size_t max_qubits; /** Sets max required memory for representing state.*/
 
@@ -185,7 +186,8 @@ class Sampler {
 
   using RegisterType = uint8_t;
   /** Collect samples from simulation.*/
-  MatrixBuffer<RegisterType> sample_states(size_t num_samples) {
+  std::pair<MatrixBuffer<RegisterType>,
+            std::vector<pybind11::array_t<fp_type>>> sample_states(size_t num_samples) {
     KState<Simulator> k_state(init_kstate);
     KState<Simulator> tmp_state(init_kstate);
     RegisterMap final_registers;
@@ -200,6 +202,8 @@ class Sampler {
     }
 
     MatrixBuffer<RegisterType> register_mat(num_samples, register_order.size());
+    std::vector<pybind11::array_t<fp_type>> out_arrays;
+    out_arrays.reserve(num_samples);
 
     for (size_t ii = 0; ii < num_samples; ii++) {
 
@@ -211,14 +215,45 @@ class Sampler {
                                         rgen,
                                         virtual_regs);
 
+      //Write final registers
       for (size_t jj = 0; jj < register_order.size(); jj++) {
         register_mat.set_value(ii,
                                jj,
                                final_registers.at(register_order.at(jj)));
       }
+
+      // Alphabetize axes for consistent output ordering. We use reverse order
+      // because of qsim convention.
+      std::vector<std::string> axis_order = k_state.qubit_axis;
+      std::sort(axis_order.rbegin(), axis_order.rend());
+      k_state.order_axes(axis_order);
+
+      //Allocate output array
+      State state = k_state.active_state();
+      //We allocate twice as much memory because we are storing a complex vector
+      // using two real values.
+      unsigned num_qubits = state.num_qubits();
+      const unsigned fsv_size = unsigned{1} << (num_qubits + 1);
+      auto* fsv = new fp_type[StateSpace::MinSize(num_qubits)];
+
+      // We can only copy the array through a qsim state that shares a pointer
+      // to the same allocated memory.
+      State dummy_state = StateSpace(num_threads).Create(fsv, num_qubits);
+      StateSpace(num_threads).Copy(state, dummy_state);
+
+      //Convert from RRRRRRIIIIII to RIRIRIRIRI representation.
+      StateSpace(num_threads).InternalToNormalOrder(dummy_state);
+
+      //Encapsulate the data in a pybind array object. First use a capsule
+      // wrapper to ensure the object is not garbage collected immediately.
+      auto capsule = pybind11::capsule(
+          fsv, [](void* data) { delete [] reinterpret_cast<fp_type*>(data); });
+
+      out_arrays.push_back(pybind11::array_t<fp_type>(fsv_size, fsv, capsule));
+
     }
 
-    return register_mat;
+    return std::make_pair(register_mat, out_arrays);
   }
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/

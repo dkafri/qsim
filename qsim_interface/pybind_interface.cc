@@ -65,4 +65,20 @@ PYBIND11_MODULE(pybind_interface, m) {
       })
       .def(py::init<size_t, size_t>()); // bind constructor
 
+//  using ComplexType= Sampler::Complex;
+//  using fp_type = Sampler::fp_type;
+//  py::class_<VectorBuffer<fp_type>>(m, "CArray", py::buffer_protocol())
+//      .def_buffer([](VectorBuffer<fp_type>& m) -> py::buffer_info {
+//        return py::buffer_info(
+//            m.data(),                               /* Pointer to buffer */
+//            2
+//                * sizeof(fp_type),                          /* Size of one scalar */
+//            py::format_descriptor<ComplexType>::format(), /* Python struct-style format descriptor */
+//            1,                                      /* Number of dimensions */
+//            {m.size() / 2},                 /* Buffer dimensions */
+//            {2 * sizeof(fp_type)} /* Strides (in bytes) for each index */
+//        );
+//      })
+//      .def(py::init<size_t>()); // bind constructor
+
 }

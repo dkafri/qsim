@@ -95,10 +95,23 @@ def test_samples():
   cond_regs = (cond_reg,)
   is_recorded = True
   is_virtual = False
-  label = "flip_a"
-  labels.append(label)
+  flip_a = "flip_a"
+  labels.append(flip_a)
 
-  sampler_cpp.add_koperation(channels, cond_regs, is_recorded, label,
+  sampler_cpp.add_koperation(channels, cond_regs, is_recorded, flip_a,
+                             is_virtual)
+
+  # flip b if a was flipped
+  sqrt_half = np.sqrt(0.5)
+  channels = {
+      (0,): [[np.eye(2, dtype=ComplexType).ravel(), [], ["b"], [], [], []]],
+      (1,): [[np.array([0, 1, 1, 0], ComplexType).ravel(), [], ["b"], [], [],
+              []]]}  #
+  cond_regs = (flip_a,)
+  is_recorded = False
+  is_virtual = False
+
+  sampler_cpp.add_koperation(channels, cond_regs, is_recorded, 'unlabelled',
                              is_virtual)
 
   channels = {
@@ -117,7 +130,8 @@ def test_samples():
 
   sampler_cpp.set_register_order(labels)
 
-  reg_mat_cpp = sampler_cpp.sample_states(10)
+  reg_mat_cpp, out_arrays = sampler_cpp.sample_states(10)
+  out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
   reg_mat = np.array(reg_mat_cpp, copy=False)
 
   assert reg_mat.shape == (10, 3)
@@ -125,3 +139,12 @@ def test_samples():
   # be zero
   assert np.array_equal(reg_mat[:, 0], np.zeros_like(reg_mat[:, 0]))
   assert np.array_equal(reg_mat[:, 1], reg_mat[:, 2])
+
+  # b was flipped exactly when measure_a and flip_a are true
+  state_00 = np.array([1, 0, 0, 0], ComplexType)
+  state_10 = np.array([0, 0, 1, 0], ComplexType)
+  for final_arr, measure_outcome in zip(out_arrays, reg_mat[:, 1]):
+    if measure_outcome:
+      np.testing.assert_array_equal(final_arr, state_10)
+    else:
+      np.testing.assert_array_equal(final_arr, state_00)
