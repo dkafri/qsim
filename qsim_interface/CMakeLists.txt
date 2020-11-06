@@ -17,7 +17,6 @@ include_directories(../lib include)
 
 add_executable(state_rep_tests state_rep_tests.cc)
 add_executable(sampling_tests sampling_tests.cc)
-add_executable(kop_sampling kop_sampling.cc)
 add_executable(kop_sampling_sequence kop_sampling_sequence.cc)
 
 ## Include pybind11
@@ -37,5 +36,4 @@ if (NOT pybind11_POPULATED)
     add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif ()
 
-pybind11_add_module(pybind_interface pybind_interface.cc)
-pybind11_add_module(pybind_example pybind_example.cc)
+pybind11_add_module(qsim_interface qsim_interface.cc)

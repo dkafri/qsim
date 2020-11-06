@@ -1,0 +1,2 @@
+numpy>=1.16
+pybind11 # required for build

@@ -6,7 +6,7 @@
 #include <pybind11/stl.h>
 
 #include <simmux.h>
-#include <pybind_interface.h>
+#include <qsim_interface.h>
 #include <formux.h>
 
 namespace py = pybind11;
@@ -15,8 +15,8 @@ namespace py = pybind11;
 ///** Load a numpy array as an initial state vector to a Sampler.*/
 
 
-PYBIND11_MODULE(pybind_interface, m) {
-  m.doc() = "pybind11 example plugin"; // optional module docstring
+PYBIND11_MODULE(qsim_interface, m) {
+  m.doc() = "wrapper for qsim trajectories functionality"; // optional module docstring
 
 
 
