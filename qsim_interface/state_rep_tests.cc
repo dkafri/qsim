@@ -464,6 +464,21 @@ void test_move_assignment() {
 
 }
 
+void test_increase_max_qubits() {
+
+  KState<Simulator> kstate(3, 2, vector<string>{"a", "b"});
+
+  TEST_CHECK(kstate.max_qubits() == 2);
+  kstate.add_qubit("c");
+  TEST_CHECK(kstate.max_qubits() == 3);
+
+  KState<Simulator> kstate_1(3, 2, vector<string>{"a", "b"});
+  TEST_CHECK(kstate_1.max_qubits() == 2);
+  kstate_1.copy_from(kstate);
+  TEST_CHECK(kstate_1.max_qubits() == 3);
+
+}
+
 #if DEBUG
 int main() {
 
@@ -487,6 +502,7 @@ TEST_LIST = {
     {"f_align reverses c_align", test_f_align_reverse_c_align},
     {"pointer constructor", test_pointer_constructor},
     {"move assignment", test_move_assignment},
+    {"increase max qubits", test_increase_max_qubits},
     {nullptr, nullptr} // Required final element
 };
 #endif
