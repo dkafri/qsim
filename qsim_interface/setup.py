@@ -3,6 +3,10 @@ from pybind11.setup_helpers import Pybind11Extension, build_ext, ParallelCompile
 
 description = 'qsim backend interface for kraus_sim simulator'
 
+# Read in requirements
+requirements = open('requirements.txt').readlines()
+requirements = [r.strip().split('#')[0] for r in requirements]
+print(f'Requirements: {requirements}')
 
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
@@ -21,6 +25,7 @@ setup(
     version='0.1.0',
     author='dkafri@',
     python_requires='>=3.6',
+    install_requires=requirements,
     license='',
     description=description,
     cmdclass={"build_ext": build_ext},
