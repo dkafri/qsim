@@ -60,7 +60,8 @@ class KState {
          const StringIterable axis_labels
   )
       : state_vec(StateSpace(num_threads).Create(max_qubits)),
-        num_threads(num_threads), max_qubits(max_qubits) {
+        num_threads(num_threads), max_qubits_(max_qubits),
+        own_memory(true) {
 
     // Assign qubits to axis labels. Assume all axes are initially allocated one
     // qubit.
@@ -86,7 +87,8 @@ class KState {
          fp_type* data
   )
       : state_vec(StateSpace(num_threads).Create(data, max_qubits)),
-        num_threads(num_threads), max_qubits(max_qubits) {
+        num_threads(num_threads), max_qubits_(max_qubits),
+        own_memory(false) {
 
     // Assign qubits to axis labels. Assume all axes are initially allocated one
     // qubit.
@@ -98,8 +100,10 @@ class KState {
 
   /** Copy constructor*/
   KState(const KState& k_state) :
-      state_vec(StateSpace(k_state.num_threads).Create(k_state.max_qubits)),
-      num_threads(k_state.num_threads), max_qubits(k_state.max_qubits) {
+      state_vec(StateSpace(k_state.num_threads).Create(k_state.max_qubits_)),
+      num_threads(k_state.num_threads),
+      max_qubits_(k_state.max_qubits_),
+      own_memory(true) {
 
     //copy axis_qubits and qubit_axis
     for (const auto& axis : k_state.qubit_axis) {
@@ -115,11 +119,12 @@ class KState {
   /** Move assignment */
   KState& operator=(KState&& other) noexcept {
     if (this != &other) {
-      num_threads = std::move(other.num_threads);
-      max_qubits = std::move(other.max_qubits);
+      num_threads = other.num_threads;
+      max_qubits_ = other.max_qubits_;
       state_vec = std::move(other.state_vec);
       axis_qubits = std::move(other.axis_qubits);
       qubit_axis = std::move(other.qubit_axis);
+      own_memory = other.own_memory;
     }
     return *this;
   }
@@ -127,7 +132,8 @@ class KState {
   /** Move constructor*/
   KState(KState&& k_state) noexcept
       : num_threads(0),
-        max_qubits(0),
+        max_qubits_(0),
+        own_memory(true),
       //We need to initialize state_vec because State has no trivial
       // constructor.
         state_vec(StateSpace::Null()) {
@@ -140,8 +146,9 @@ class KState {
    *    max_qubits.
    * */
   void copy_from(KState& source) {
-    assert(max_qubits == source.max_qubits);
-    assert(num_threads == source.num_threads);
+    if (max_qubits_ < source.max_qubits_) //Reallocation required.
+      increment_max_qubits(source.max_qubits_ - max_qubits_);
+    num_threads = source.num_threads;
 
     // Need to clear the state vector if it is larger than source's
 
@@ -160,6 +167,9 @@ class KState {
     State my_state = active_state();
     StateSpace(num_threads).Copy(source_state, my_state);
   }
+
+  /** Current maximum state vector size, in terms of stored qubits.*/
+  size_t max_qubits() { return max_qubits_; }
 
   /* State with current vector size.*/
   State active_state() {
@@ -233,11 +243,13 @@ class KState {
    * @param axis: The axis to which to add the qubit to.
    * */
   void add_qubit(const std::string& axis) {
-    assert(num_active_qubits() < max_qubits);
+    assert(num_active_qubits() <= max_qubits_);
+
+    if (num_active_qubits() == max_qubits_) //memory reallocation required.
+      increment_max_qubits(1);
 
     axis_qubits[axis].push_back(num_active_qubits());
     qubit_axis.push_back(axis);
-
   }
 
   /** Remove qubits from a sequence of axes.
@@ -375,12 +387,41 @@ class KState {
   State state_vec;
   const static std::vector<fp_type> swap_matrix;
   unsigned num_threads;
-  unsigned max_qubits;
+  unsigned max_qubits_;
+  bool own_memory;
   using AxisQubits = std::unordered_map<std::string, std::list<unsigned>>;
   AxisQubits axis_qubits; /**Qubits allocated to each axis.*/
 
 
   // Private methods
+  /** Add another qubit to maximum memory size.
+   *
+   * This requires us to allocate more memory and copy the existing state vector
+   * into it.
+   * */
+  void increment_max_qubits(size_t num_added) {
+    assert (num_added > 0);
+    assert (own_memory);
+
+    max_qubits_ += num_added;
+    StateSpace space = StateSpace(num_threads);
+
+    // New memory
+    State new_state_vec_max = space.Create(max_qubits_);
+    space.SetAllZeros(new_state_vec_max);
+
+    //Represent as active state
+    State new_state_vec_current = space.Create(
+        new_state_vec_max.get(), num_active_qubits());
+
+    //Copy existing active state
+    space.Copy(active_state(), new_state_vec_current);
+
+    //Replace active_state
+    state_vec = std::move(new_state_vec_max);
+
+  }
+
   /** Simulator appropriate to current vector size.*/
   inline Simulator active_simulator() const { return Simulator(num_threads); }
 
