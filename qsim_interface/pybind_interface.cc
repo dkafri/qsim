@@ -25,8 +25,8 @@ PYBIND11_MODULE(pybind_interface, m) {
   using Simulator = qsim::Simulator<qsim::For>;
   using Sampler = Sampler<Simulator>;
   py::class_<Sampler>(m, "Sampler")
-      .def(py::init<size_t, size_t, bool>(),
-           py::arg("num_threads"), py::arg("max_qubits"),
+      .def(py::init<size_t, bool>(),
+           py::arg("num_threads"),
            py::arg("consistent_axis_order")) //bind constructor
       .def("set_random_seed",
            &Sampler::set_random_seed,

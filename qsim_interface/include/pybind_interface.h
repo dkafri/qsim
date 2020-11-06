@@ -59,15 +59,15 @@ class Sampler {
   using StateSpace = typename Simulator::StateSpace;
   using State = typename StateSpace::State;
 
-  size_t max_qubits; /** Sets max required memory for representing state.*/
-  bool consistent_axis_order;
+  bool consistent_axis_order; /** Whether every sample is expected to always
+ * have the same qubit axis order. This is True when there all KrausOperations
+ * have consistent output shapes.*/
 
   /** Basic constructor */
   // We do not allocate memory for the constructed initial state since we
   // assume memory will be externally allocated.
-  Sampler(size_t num_threads, size_t max_qubits, bool consistent_axis_order)
-      : num_threads(num_threads),
-        max_qubits(max_qubits), consistent_axis_order(consistent_axis_order),
+  Sampler(size_t num_threads, bool consistent_axis_order)
+      : num_threads(num_threads), consistent_axis_order(consistent_axis_order),
         init_kstate(num_threads, 1, std::vector<std::string>{}) {
     std::random_device rd;
     rgen = std::mt19937(rd());
@@ -102,9 +102,15 @@ class Sampler {
                           const std::vector<std::string>& axes) {
     pybind11::buffer_info buffer = array.request();
 
-    size_t expected_size = (size_t{1} << max_qubits);
-    if (buffer.size != expected_size)
-      throw std::runtime_error("Input array size does not match max_qubits.");
+    size_t buffer_size = buffer.size;
+    if ((buffer_size & (buffer_size - 1)) != 0)
+      throw std::runtime_error("Input array size is not a power of 2.");
+
+    unsigned max_qubits = 0;
+    while (buffer_size > 0) {
+      buffer_size >>= 1;
+      max_qubits++;
+    }
 
     auto ptr = static_cast<typename Simulator::fp_type*>(buffer.ptr);
     //Assign axes backwards to match qsim order
