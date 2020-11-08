@@ -11,27 +11,6 @@
 #include "sampling.h"
 #include "k_ops.h"
 
-/** Wrapper class for a buffer object that can be wrapped by a numpy array
- * matrix.*/
-template<typename fp_type>
-class MatrixBuffer {
- public:
-  MatrixBuffer(size_t rows, size_t cols)
-      : m_rows(rows), m_cols(cols), m_data(cols * rows) {};
-  fp_type* data() { return m_data.data(); }
-  size_t rows() const { return m_rows; }
-  size_t cols() const { return m_cols; }
-
-  void set_value(size_t row, size_t col, fp_type val) {
-    m_data.at(row * m_cols + col) = val;
-  }
-
- private:
-  size_t m_rows, m_cols;
-  std::vector<fp_type> m_data;
-
-};
-
 template<typename fp_type>
 pybind11::array_t<fp_type,
                   pybind11::array_t<fp_type>::c_style> as_pyarray(
@@ -206,7 +185,7 @@ class Sampler {
   using RegisterType = uint8_t;
   using OutArrays = std::vector<pybind11::array_t<fp_type>>;
   using AxisOrders = std::vector<std::vector<std::string>>;
-  using SamplingOutput = std::tuple<MatrixBuffer<RegisterType>,
+  using SamplingOutput = std::tuple<pybind11::array_t<RegisterType>,
                                     OutArrays,
                                     AxisOrders>;
   /** Collect samples from simulation.*/
@@ -224,7 +203,11 @@ class Sampler {
       }
     }
 
-    MatrixBuffer<RegisterType> register_mat(num_samples, register_order.size());
+    //Initialize an empty 2D numpy array of desired size.
+    pybind11::array_t<RegisterType>
+        register_mat({num_samples, register_order.size()});
+    // A proxy object is needed to access data.
+    auto register_mat_proxy = register_mat.mutable_unchecked();
     std::vector<pybind11::array_t<fp_type>> out_arrays;
     out_arrays.reserve(num_samples);
 
@@ -246,11 +229,9 @@ class Sampler {
 
       //Write final registers
       for (size_t jj = 0; jj < register_order.size(); jj++) {
-        register_mat.set_value(ii,
-                               jj,
-                               final_registers.at(register_order.at(jj)));
+        *register_mat_proxy.mutable_data(ii, jj) =
+            final_registers.at(register_order.at(jj));
       }
-
 
       //Allocate output array
       State state = k_state.active_state();
@@ -270,7 +251,7 @@ class Sampler {
 
       out_arrays.push_back(as_pyarray({fsv_size}, fsv));
 
-      //record axis order (reverse to account for qsim convention)
+      // record axis order (reverse to account for qsim convention)
       // if axis order is always the same just do this the first time
       if (!consistent_axis_order || ii == 1) {
         const auto
@@ -278,7 +259,6 @@ class Sampler {
                                                     k_state.qubit_axis.rend());
         qubit_axis_orders.push_back(axis_order);
       }
-
     }
 
     return std::make_tuple(register_mat, out_arrays, qubit_axis_orders);

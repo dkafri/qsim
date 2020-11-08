@@ -16,10 +16,8 @@ namespace py = pybind11;
 
 
 PYBIND11_MODULE(qsim_interface, m) {
-  m.doc() = "wrapper for qsim trajectories functionality"; // optional module docstring
-
-
-
+  m.doc() =
+      "wrapper for qsim trajectories functionality"; // optional module docstring
 
 
   using Simulator = qsim::Simulator<qsim::For>;
@@ -49,38 +47,5 @@ PYBIND11_MODULE(qsim_interface, m) {
            py::arg("is_virtual"))
       .def("sample_states", &Sampler::sample_states,
            py::arg("num_samples"));
-
-
-  using RegisterType = Sampler::RegisterType;
-  py::class_<MatrixBuffer<RegisterType>>(m, "UIntMatrix", py::buffer_protocol())
-      .def_buffer([](MatrixBuffer<RegisterType>& m) -> py::buffer_info {
-        return py::buffer_info(
-            m.data(),                               /* Pointer to buffer */
-            sizeof(RegisterType),                          /* Size of one scalar */
-            py::format_descriptor<RegisterType>::format(), /* Python struct-style format descriptor */
-            2,                                      /* Number of dimensions */
-            {m.rows(), m.cols()},                 /* Buffer dimensions */
-            {sizeof(RegisterType)
-                 * m.cols(),             /* Strides (in bytes) for each index */
-             sizeof(RegisterType)}
-        );
-      })
-      .def(py::init<size_t, size_t>()); // bind constructor
-
-//  using ComplexType= Sampler::Complex;
-//  using fp_type = Sampler::fp_type;
-//  py::class_<VectorBuffer<fp_type>>(m, "CArray", py::buffer_protocol())
-//      .def_buffer([](VectorBuffer<fp_type>& m) -> py::buffer_info {
-//        return py::buffer_info(
-//            m.data(),                               /* Pointer to buffer */
-//            2
-//                * sizeof(fp_type),                          /* Size of one scalar */
-//            py::format_descriptor<ComplexType>::format(), /* Python struct-style format descriptor */
-//            1,                                      /* Number of dimensions */
-//            {m.size() / 2},                 /* Buffer dimensions */
-//            {2 * sizeof(fp_type)} /* Strides (in bytes) for each index */
-//        );
-//      })
-//      .def(py::init<size_t>()); // bind constructor
 
 }

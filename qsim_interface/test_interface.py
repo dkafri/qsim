@@ -4,23 +4,6 @@ from functools import reduce
 import numpy as np
 import build.qsim_interface as pbi
 
-
-def test_uint_matrix_import():
-  mat_cpp = pbi.UIntMatrix(2, 3)
-  mat_np = np.array(mat_cpp, copy=False)
-
-  assert mat_np.shape == (2, 3)
-  assert mat_np.dtype == np.dtype('uint8')
-
-  # Write data
-  mat_np.ravel()[:] = np.arange(mat_np.size)
-
-  # confirm both matrices point to same data
-  mat_np2 = np.array(mat_cpp, copy=False)
-  assert np.array_equal(mat_np, mat_np2)
-  assert np.array_equal(np.arange(2 * 3).reshape(2, 3), mat_np)
-
-
 ComplexType = np.dtype('complex64')
 
 
@@ -103,7 +86,6 @@ def test_samples():
                              is_virtual)
 
   # flip b if a was flipped
-  sqrt_half = np.sqrt(0.5)
   channels = {
       (0,): [[np.eye(2, dtype=ComplexType).ravel(), [], ["b"], [], [], []]],
       (1,): [[np.array([0, 1, 1, 0], ComplexType).ravel(), [], ["b"], [], [],
@@ -131,9 +113,8 @@ def test_samples():
 
   sampler_cpp.set_register_order(labels)
 
-  reg_mat_cpp, out_arrays, axis_orders = sampler_cpp.sample_states(10)
+  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(10)
   out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
-  reg_mat = np.array(reg_mat_cpp, copy=False)
 
   assert reg_mat.shape == (10, 3)
   # expect second and third columns to always agree, first column to always
