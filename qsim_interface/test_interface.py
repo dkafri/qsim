@@ -131,3 +131,38 @@ def test_samples():
       np.testing.assert_array_equal(final_arr, state_10)
     else:
       np.testing.assert_array_equal(final_arr, state_00)
+
+
+def test_samples_1():
+  max_qubits = 4
+  sampler_cpp = pbi.Sampler(3, True)
+  sampler_cpp.set_random_seed(11)
+
+  sampler_cpp.set_initial_registers({})
+
+  # state_vec = np.arange((2 ** max_qubits_)).astype(ComplexType)
+  state_vec = np.zeros((2 ** max_qubits), ComplexType)
+  state_vec[3] = 1.0
+  axes = ["a", "b"]
+  sampler_cpp.bind_initial_state(state_vec, axes)
+
+  # prepare "c" in 0 state
+  channels = {
+      (): [[np.array([1, 0, 0, 0], ComplexType), ["c"], ["c"], [], [], []]]
+  }
+
+  sampler_cpp.add_koperation(channels, (), False, "prep c", False)
+
+  sampler_cpp.set_register_order(())
+
+  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(10)
+  out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
+
+  expected_arr = np.zeros((8,), ComplexType)
+  expected_arr[3] = 1
+  for arr in out_arrays:
+    np.testing.assert_array_equal(arr, expected_arr)
+
+  assert axis_orders[0] == ["c", "a", "b"]
+  assert reg_mat.size == 0
+
