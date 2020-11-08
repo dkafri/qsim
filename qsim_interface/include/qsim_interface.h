@@ -208,6 +208,7 @@ class Sampler {
         register_mat({num_samples, register_order.size()});
     // A proxy object is needed to access data.
     auto register_mat_proxy = register_mat.mutable_unchecked();
+
     std::vector<pybind11::array_t<fp_type>> out_arrays;
     out_arrays.reserve(num_samples);
 
@@ -253,7 +254,7 @@ class Sampler {
 
       // record axis order (reverse to account for qsim convention)
       // if axis order is always the same just do this the first time
-      if (!consistent_axis_order || ii == 1) {
+      if (!consistent_axis_order || ii == 0) {
         const auto
             & axis_order = std::vector<std::string>(k_state.qubit_axis.rbegin(),
                                                     k_state.qubit_axis.rend());
