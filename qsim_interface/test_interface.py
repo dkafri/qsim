@@ -2,7 +2,7 @@ from collections import Counter
 from functools import reduce
 
 import numpy as np
-import build.pybind_interface as pbi
+import build.qsim_interface as pbi
 
 
 def test_uint_matrix_import():

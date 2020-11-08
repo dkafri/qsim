@@ -32,6 +32,18 @@ class MatrixBuffer {
 
 };
 
+template<typename fp_type>
+pybind11::array_t<fp_type,
+                  pybind11::array_t<fp_type>::c_style> as_pyarray(
+    std::vector<size_t> shape, const fp_type* data) {
+  //Encapsulate the data in a pybind array object. First use a capsule
+  // wrapper to ensure the object is not garbage collected immediately.
+  auto capsule = pybind11::capsule(
+      data, [](void* data) { delete[] reinterpret_cast<fp_type*>(data); });
+
+  return pybind11::array_t<fp_type>(shape, data, capsule);
+}
+
 /** Interface object for collecting samples
  *
  * Constructor requires num_threads and max_qubits.
@@ -256,12 +268,7 @@ class Sampler {
       //Convert from RRRRRRIIIIII to RIRIRIRIRI representation.
       StateSpace(num_threads).InternalToNormalOrder(dummy_state);
 
-      //Encapsulate the data in a pybind array object. First use a capsule
-      // wrapper to ensure the object is not garbage collected immediately.
-      auto capsule = pybind11::capsule(
-          fsv, [](void* data) { delete[] reinterpret_cast<fp_type*>(data); });
-
-      out_arrays.push_back(pybind11::array_t<fp_type>(fsv_size, fsv, capsule));
+      out_arrays.push_back(as_pyarray({fsv_size}, fsv));
 
       //record axis order (reverse to account for qsim convention)
       // if axis order is always the same just do this the first time
@@ -276,6 +283,7 @@ class Sampler {
 
     return std::make_tuple(register_mat, out_arrays, qubit_axis_orders);
   }
+
  private:
   size_t num_threads; /** Number of multi-threads for simulation.*/
   KState<Simulator> init_kstate; /** Stores initial state vector.*/
