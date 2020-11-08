@@ -55,7 +55,6 @@ def test_add_cop():
 
 
 def test_samples():
-  max_qubits = 4
   sampler_cpp = pbi.Sampler(3, True)
   sampler_cpp.set_random_seed(11)
   cond_reg = "R"
@@ -63,7 +62,7 @@ def test_samples():
   labels = [cond_reg]
 
   # state_vec = np.arange((2 ** max_qubits_)).astype(ComplexType)
-  state_vec = np.zeros((2 ** max_qubits), ComplexType)
+  state_vec = np.zeros((2 ** 3,), ComplexType)
   state_vec[0] = 1.0
   axes = ["a", "b", "c"]
   sampler_cpp.bind_initial_state(state_vec, axes)
@@ -134,14 +133,13 @@ def test_samples():
 
 
 def test_samples_1():
-  max_qubits = 4
   sampler_cpp = pbi.Sampler(3, True)
   sampler_cpp.set_random_seed(11)
 
   sampler_cpp.set_initial_registers({})
 
   # state_vec = np.arange((2 ** max_qubits_)).astype(ComplexType)
-  state_vec = np.zeros((2 ** max_qubits), ComplexType)
+  state_vec = np.zeros((4,), ComplexType)
   state_vec[3] = 1.0
   axes = ["a", "b"]
   sampler_cpp.bind_initial_state(state_vec, axes)
