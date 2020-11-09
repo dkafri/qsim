@@ -1,5 +1,5 @@
 import numpy as np
-import qsim_interface as pbi
+import build.qsim_interface as pbi
 
 ComplexType = np.dtype('complex64')
 
@@ -130,38 +130,38 @@ def test_samples():
 
 
 def test_samples_1():
-  sampler_cpp = pbi.Sampler(1, True)
+  for _ in range(100):
+    sampler_cpp = pbi.Sampler(1, True)
 
-  sampler_cpp.set_initial_registers({})
+    sampler_cpp.set_initial_registers({})
 
-  # prepare "c" in 0 state
-  channels = {
-      (): [[np.array([1, 0, 0, 0], ComplexType), ["c"], ["c"], [], [], []]]
-  }
+    # prepare "c" in 0 state
+    channels = {
+        (): [[np.array([1, 0, 0, 0], ComplexType), ["c"], ["c"], [], [], []]]
+    }
 
-  sampler_cpp.add_koperation(channels, (), False, "prep c", False)
+    sampler_cpp.add_koperation(channels, (), False, "prep c", False)
 
-  sampler_cpp.set_register_order(())
+    sampler_cpp.set_register_order(())
 
-  state_vec = np.zeros((4,), ComplexType)
-  state_vec[3] = 1.0
-  axes = ["a", "b"]
-  sampler_cpp.bind_initial_state(state_vec, axes)
+    state_vec = np.zeros((4,), ComplexType)
+    state_vec[3] = 1.0
+    axes = ["a", "b"]
+    sampler_cpp.bind_initial_state(state_vec, axes)
 
-  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
-  out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
+    reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
+    out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
 
-  expected_arr = np.zeros((8,), ComplexType)
-  expected_arr[3] = 1
-  for arr in out_arrays:
-    np.testing.assert_array_equal(arr, expected_arr)
+    expected_arr = np.zeros((8,), ComplexType)
+    expected_arr[3] = 1
+    for arr in out_arrays:
+      np.testing.assert_array_equal(arr, expected_arr)
 
-  assert axis_orders[0] == ["c", "a", "b"]
-  assert reg_mat.size == 0
+    assert axis_orders[0] == ["c", "a", "b"]
+    assert reg_mat.size == 0
 
 
 def test_state_prep():
-
   for _ in range(100):
     sampler_cpp = pbi.Sampler(1, True)
     sampler_cpp.set_random_seed(11)
@@ -179,12 +179,9 @@ def test_state_prep():
 
     state_vec = np.zeros((8,), ComplexType)
     state_vec[1] = 1.0
-    axes = ["D0","D1","D2"]
+    axes = ["D0", "D1", "D2"]
     sampler_cpp.bind_initial_state(state_vec, axes)
 
     reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
     out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
     assert not np.any(np.isnan(out_arrays[0]))
-
-
-

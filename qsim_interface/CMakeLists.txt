@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp")
+#set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DDEBUG_SAMPLING")
+
 message(STATUS "compiler flags ${CMAKE_CXX_FLAGS}")
 
 find_package(PythonInterp REQUIRED)
