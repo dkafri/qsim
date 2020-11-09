@@ -5,18 +5,18 @@ ComplexType = np.dtype('complex64')
 
 
 def test_sampler_setters():
-  max_qubits = 4
   sampler_cpp = pbi.Sampler(3, True)
   sampler_cpp.set_random_seed(22)
   sampler_cpp.set_initial_registers({"a": 1})
   sampler_cpp.set_register_order(["c", "d", "e"])
 
   # state_vec = np.arange((2 ** max_qubits_)).astype(ComplexType)
-  state_vec = np.zeros((2 ** max_qubits), ComplexType)
+  axes = ["a", "b", "c"]
+  state_vec = np.zeros((2 ** len(axes)), ComplexType)
   state_vec[3] = 1.0
   state_vec[5] = 2.0
   state_vec[0] = 3.0
-  axes = ["a", "b", "c"]
+
   sampler_cpp.bind_initial_state(state_vec, axes)
 
 
@@ -158,3 +158,33 @@ def test_samples_1():
 
   assert axis_orders[0] == ["c", "a", "b"]
   assert reg_mat.size == 0
+
+
+def test_state_prep():
+
+  for _ in range(100):
+    sampler_cpp = pbi.Sampler(1, True)
+    sampler_cpp.set_random_seed(11)
+
+    sampler_cpp.set_initial_registers({})
+
+    # prepare "d" in 0 state
+    channels = {
+        (): [[np.array([1, 0, 0, 0], ComplexType), ["M0"], ["M0"], [], [], []]]
+    }
+
+    sampler_cpp.add_koperation(channels, (), False, "prep M0", False)
+
+    sampler_cpp.set_register_order(())
+
+    state_vec = np.zeros((8,), ComplexType)
+    state_vec[1] = 1.0
+    axes = ["D0","D1","D2"]
+    sampler_cpp.bind_initial_state(state_vec, axes)
+
+    reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
+    out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
+    assert not np.any(np.isnan(out_arrays[0]))
+
+
+

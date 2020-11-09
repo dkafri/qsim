@@ -45,14 +45,27 @@ static inline void sample_kop(KOperation<fp_type>& op,
       k_state.add_qubit(ax);
       tmp_state.add_qubit(ax);
     }
+#ifdef DEBUG_SAMPLING
+    std::cout<<"state after adding qubits:\n";
+    k_state.print_amplitudes();
+#endif
 
     //Permute and apply matrix
     k_state.permute_and_apply(k_op.matrix, k_op.qubit_axes);
+
+#ifdef DEBUG_SAMPLING
+    std::cout<<"state after applying matrix:\n";
+    k_state.print_amplitudes();
+#endif
 
     if (channel.size() > 1) // norm must be 1 if only one operator present.
       norm2 = k_state.norm_squared();
     cutoff -= norm2;
     if (cutoff < 0) { // operator sampled
+#ifdef DEBUG_SAMPLING
+      std::cout << "operator sampled!\n";
+#endif
+
       // Apply swaps
       for (auto ii = 0; ii < k_op.swap_sources.size(); ii++) {
         k_state.transfer_qubits(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
@@ -62,6 +75,11 @@ static inline void sample_kop(KOperation<fp_type>& op,
       //Normalize if needed
       if (channel.size() > 1)
         k_state.rescale(1 / sqrt(norm2));
+
+#ifdef DEBUG_SAMPLING
+      std::cout << "state after swaps and removes and normalization:\n";
+      k_state.print_amplitudes();
+#endif
       break;
     }
     // Operator not sampled -> backtrack. Copy original vector before
