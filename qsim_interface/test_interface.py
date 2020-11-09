@@ -1,6 +1,3 @@
-from collections import Counter
-from functools import reduce
-
 import numpy as np
 import build.qsim_interface as pbi
 
@@ -133,16 +130,9 @@ def test_samples():
 
 
 def test_samples_1():
-  sampler_cpp = pbi.Sampler(3, True)
-  sampler_cpp.set_random_seed(11)
+  sampler_cpp = pbi.Sampler(1, True)
 
   sampler_cpp.set_initial_registers({})
-
-  # state_vec = np.arange((2 ** max_qubits_)).astype(ComplexType)
-  state_vec = np.zeros((4,), ComplexType)
-  state_vec[3] = 1.0
-  axes = ["a", "b"]
-  sampler_cpp.bind_initial_state(state_vec, axes)
 
   # prepare "c" in 0 state
   channels = {
@@ -153,7 +143,12 @@ def test_samples_1():
 
   sampler_cpp.set_register_order(())
 
-  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(10)
+  state_vec = np.zeros((4,), ComplexType)
+  state_vec[3] = 1.0
+  axes = ["a", "b"]
+  sampler_cpp.bind_initial_state(state_vec, axes)
+
+  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
   out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
 
   expected_arr = np.zeros((8,), ComplexType)
@@ -163,4 +158,3 @@ def test_samples_1():
 
   assert axis_orders[0] == ["c", "a", "b"]
   assert reg_mat.size == 0
-
