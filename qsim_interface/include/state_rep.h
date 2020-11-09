@@ -216,7 +216,7 @@ class KState {
                   if (q == b.second)
                     return false;
                 }
-                assert(false); // we should never reach this point
+                return false;
               });
 
     //Permutation required to sort qubit_axis
