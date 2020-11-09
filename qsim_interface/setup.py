@@ -17,7 +17,10 @@ ext_modules = [
         "qsim_interface",
         ["qsim_interface.cc"],
         cxx_std=14,
-        include_dirs=["include", "../lib"]
+        include_dirs=["include", "../lib"],
+        # undef_macros=["NDEBUG"],  # Allow assertions to be compiled
+        # Allow extra information to be printed for debugging
+        # define_macros=[("DEBUG_SAMPLING", 1) ]
     ),
 ]
 

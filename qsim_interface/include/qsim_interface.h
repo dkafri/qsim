@@ -98,10 +98,16 @@ class Sampler {
       throw std::runtime_error("Input array size is not a power of 2.");
 
     unsigned max_qubits = 0;
-    while (buffer_size > 0) {
+    while (buffer_size > 1) {
       buffer_size >>= 1;
       max_qubits++;
     }
+
+    if (axes.size() != max_qubits)
+      throw std::runtime_error(
+          "array size " + std::to_string(buffer.size) + " corresponds to "
+              + std::to_string(max_qubits) + " qubits but "
+              + std::to_string(axes.size()) + " axes are specified.\n");
 
     auto ptr = static_cast<typename Simulator::fp_type*>(buffer.ptr);
     //Assign axes backwards to match qsim order
@@ -113,6 +119,15 @@ class Sampler {
     auto state = init_kstate.active_state();
     //Converts from RIRIRIRI to RRRIIII
     StateSpace(num_threads).NormalToInternalOrder(state);
+
+#ifdef DEBUG_SAMPLING
+    std::cout<< "Initial state:\n";
+    init_kstate.print_amplitudes();
+    std::cout<< "Axes: ";
+    for (const auto & ax : init_kstate.qubit_axis)
+      std::cout << ax << ", ";
+    std::cout<<std::endl;
+#endif
 
   }
 
@@ -148,10 +163,22 @@ class Sampler {
       cmap.emplace(reg_vals, channel_vec);
     }
 
+#ifdef DEBUG_SAMPLING
+    std::cout<<"added KOperation:\n";
+
+    auto k_op = KOperation<fp_type>(cmap, conditional_registers,
+                                         is_recorded,
+                                         label,
+                                         is_virtual);
+    k_op.print();
+    ops.emplace_back(k_op);
+#else
     ops.emplace_back(KOperation<fp_type>(cmap, conditional_registers,
                                          is_recorded,
                                          label,
                                          is_virtual));
+#endif
+
   }
 
   using COperatorData = std::tuple<COperator::TruthTable,

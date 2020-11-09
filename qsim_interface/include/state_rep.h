@@ -403,6 +403,12 @@ class KState {
     assert (num_added > 0);
     assert (own_memory);
 
+#ifdef DEBUG_SAMPLING
+    std::cout << "Allocating more memory to include another qubit...\n";
+    std::cout << "state vector before allocation:\n";
+    print_amplitudes();
+#endif
+
     max_qubits_ += num_added;
     StateSpace space = StateSpace(num_threads);
 
@@ -419,6 +425,11 @@ class KState {
 
     //Replace active_state
     state_vec = std::move(new_state_vec_max);
+
+#ifdef DEBUG_SAMPLING
+    std::cout << "state vector after allocation:\n";
+    print_amplitudes();
+#endif
 
   }
 

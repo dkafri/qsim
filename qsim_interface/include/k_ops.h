@@ -119,6 +119,48 @@ struct KOperator {
 
   };
 
+#ifdef DEBUG_SAMPLING
+  /** Print to cout for debugging purposes*/
+  void print() const {
+
+    std::cout << "Matrix: (";
+    for (size_t ii = 0; ii < matrix.size() / 2; ii++)
+      std::cout << matrix[2 * ii] << "+i*" << matrix[2 * ii + 1] << ", ";
+    std::cout << ")";
+    if (added_axes.size()) {
+      std::cout << ", added: (";
+      for (const auto& ax : added_axes)
+        std::cout << ax << ", ";
+      std::cout << "), ";
+    }
+    if (qubit_axes.size()) {
+      std::cout << "qubit_axes: (";
+      for (const auto& ax : qubit_axes)
+        std::cout << ax << ", ";
+      std::cout << "), ";
+    }
+    if (swap_sources.size()) {
+      std::cout << "swap_sources: (";
+      for (const auto& ax : swap_sources)
+        std::cout << ax << ", ";
+      std::cout << "), ";
+    }
+    if (swap_sinks.size()) {
+      std::cout << "swap_sinks: (";
+      for (const auto& ax : swap_sinks)
+        std::cout << ax << ", ";
+      std::cout << "), ";
+    }
+    if (removed_axes.size()) {
+      std::cout << "removed_axes: (";
+      for (const auto& ax : removed_axes)
+        std::cout << ax << ", ";
+      std::cout << ")";
+
+    }
+  }
+#endif
+
 };
 
 //A single channel, equivalent to Cirq definition of a Channel
@@ -185,6 +227,31 @@ struct KOperation {
         is_recorded(is_recorded),
         label(std::move(label)),
         is_virtual(is_virtual) {}
+
+#ifdef DEBUG_SAMPLING
+  /** print method for debugging purposes*/
+  void print() const {
+    std::cout << "KOperation (" << label << "):\n";
+    std::cout << "conditional registers: ";
+    for (auto& creg : conditional_registers)
+      std::cout << creg << ", ";
+    std::cout << std::endl;
+
+    std::cout << "channels:\n";
+    for (const auto& k_v : channels) {
+      std::cout << "\t(";
+      for (const auto& ii : k_v.first)
+        std::cout << ii << ",";
+      std::cout << "): ";
+      for (const auto& k_op: k_v.second)
+        k_op.print();
+
+    }
+    std::cout << "\nis_recorded: " << is_recorded << ", ";
+    std::cout << "is_virtual: " << is_virtual << std::endl;
+  }
+
+#endif
 };
 
 #endif //PROTOTYPE_INCLUDE_Q_OPS_H_
