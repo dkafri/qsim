@@ -6,13 +6,11 @@
 #include <pybind11/stl.h>
 
 #include <simmux.h>
-#include <qsim_interface.h>
 #include <formux.h>
+#include <qsim_interface.h>
 
 namespace py = pybind11;
 
-
-///** Load a numpy array as an initial state vector to a Sampler.*/
 
 
 PYBIND11_MODULE(qsim_interface, m) {

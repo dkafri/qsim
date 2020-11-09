@@ -89,44 +89,45 @@ class Sampler {
    *
    * */
   using Complex = std::complex<typename Simulator::fp_type>;
-  void bind_initial_state(pybind11::array_t<Complex> array,
+  void bind_initial_state(pybind11::array_t<Complex,
+                                            pybind11::array::c_style> array,
                           const std::vector<std::string>& axes) {
-    pybind11::buffer_info buffer = array.request();
 
-    size_t buffer_size = buffer.size;
-    if ((buffer_size & (buffer_size - 1)) != 0)
+    size_t array_size = array.size();
+    if ((array_size & (array_size - 1)) != 0)
       throw std::runtime_error("Input array size is not a power of 2.");
 
     unsigned max_qubits = 0;
-    while (buffer_size > 1) {
-      buffer_size >>= 1;
+    while (array_size > 1) {
+      array_size >>= 1;
       max_qubits++;
     }
 
     if (axes.size() != max_qubits)
       throw std::runtime_error(
-          "array size " + std::to_string(buffer.size) + " corresponds to "
+          "array size " + std::to_string(array.size()) + " corresponds to "
               + std::to_string(max_qubits) + " qubits but "
               + std::to_string(axes.size()) + " axes are specified.\n");
 
-    auto ptr = static_cast<typename Simulator::fp_type*>(buffer.ptr);
     //Assign axes backwards to match qsim order
     std::vector<std::string> axes_r(axes.rbegin(), axes.rend());
     init_kstate =
-        std::move(KState<Simulator>(num_threads, max_qubits, std::move(axes_r),
-                                    ptr));
+        std::move(KState<Simulator>(num_threads, max_qubits, std::move(axes_r))
+        );
 
+    // Manually write each amplitude into the initial state.
+    // TODO: figure out how to do this properly with the pointer constructor.
     auto state = init_kstate.active_state();
-    //Converts from RIRIRIRI to RRRIIII
-    StateSpace(num_threads).NormalToInternalOrder(state);
+    for (size_t ii = 0; ii < array.size(); ii++)
+      StateSpace::SetAmpl(state, ii, array.at(ii));
 
 #ifdef DEBUG_SAMPLING
-    std::cout<< "Initial state:\n";
+    std::cout << "Initial state:\n";
     init_kstate.print_amplitudes();
-    std::cout<< "Axes: ";
-    for (const auto & ax : init_kstate.qubit_axis)
+    std::cout << "Axes: ";
+    for (const auto& ax : init_kstate.qubit_axis)
       std::cout << ax << ", ";
-    std::cout<<std::endl;
+    std::cout << std::endl;
 #endif
 
   }
@@ -164,12 +165,12 @@ class Sampler {
     }
 
 #ifdef DEBUG_SAMPLING
-    std::cout<<"added KOperation:\n";
+    std::cout << "added KOperation:\n";
 
     auto k_op = KOperation<fp_type>(cmap, conditional_registers,
-                                         is_recorded,
-                                         label,
-                                         is_virtual);
+                                    is_recorded,
+                                    label,
+                                    is_virtual);
     k_op.print();
     ops.emplace_back(k_op);
 #else
