@@ -19,7 +19,7 @@ include_directories(../lib include)
 add_executable(state_rep_tests state_rep_tests.cc)
 add_executable(sampling_tests sampling_tests.cc)
 
-add_subdirectory(extern/pybind11)
+find_package(pybind11 CONFIG)
 
 
 pybind11_add_module(qsim_interface qsim_interface.cc)
