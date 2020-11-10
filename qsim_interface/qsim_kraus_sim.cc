@@ -7,13 +7,13 @@
 
 #include <simmux.h>
 #include <formux.h>
-#include <qsim_interface.h>
+#include <qsim_kraus_sim.h>
 
 namespace py = pybind11;
 
 
 
-PYBIND11_MODULE(qsim_interface, m) {
+PYBIND11_MODULE(qsim_kraus_sim, m) {
   m.doc() =
       "wrapper for qsim trajectories functionality"; // optional module docstring
 

@@ -76,7 +76,7 @@ class CMakeBuild(build_ext):
 
 
 setup(
-    name='qsim_interface',
+    name='qsim_kraus_sim',
     version=__version__,
     author='dkafri@',
     python_requires='>=3.6',
@@ -84,5 +84,5 @@ setup(
     license='',
     description=description,
     cmdclass=dict(build_ext=CMakeBuild),
-    ext_modules=[CMakeExtension('qsim_interface')]
+    ext_modules=[CMakeExtension('qsim_kraus_sim')]
 )
