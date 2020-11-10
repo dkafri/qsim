@@ -22,4 +22,4 @@ add_executable(sampling_tests sampling_tests.cc)
 find_package(pybind11 CONFIG)
 
 
-pybind11_add_module(qsim_interface qsim_interface.cc)
+pybind11_add_module(qsim_kraus_sim qsim_kraus_sim.cc)

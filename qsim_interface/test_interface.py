@@ -1,5 +1,5 @@
 import numpy as np
-import qsim_interface as pbi
+import qsim_kraus_sim as pbi
 
 ComplexType = np.dtype('complex64')
 
