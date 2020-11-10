@@ -19,7 +19,6 @@ include_directories(../lib include)
 add_executable(state_rep_tests state_rep_tests.cc)
 add_executable(sampling_tests sampling_tests.cc)
 
-find_package(pybind11 CONFIG)
-
+add_subdirectory(extern/pybind11)
 
 pybind11_add_module(qsim_kraus_sim qsim_kraus_sim.cc)
