@@ -185,3 +185,30 @@ def test_state_prep():
     reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
     out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
     assert not np.any(np.isnan(out_arrays[0]))
+
+
+def test_multiply_by_scalar():
+  sampler_cpp = pbi.Sampler(1, True)
+  sampler_cpp.set_random_seed(11)
+
+  sampler_cpp.set_initial_registers({})
+
+  # Trivially sample from a 1-element matrix, expect second outcome
+  channels = {
+      (): [[np.array([0], ComplexType), [], [], [], [], []],
+           [np.array([1], ComplexType), [], [], [], [], []]]
+  }
+
+  m_label = "trivial sample"
+  sampler_cpp.add_koperation(channels, (), True, m_label, False)
+
+  sampler_cpp.set_register_order((m_label,))
+
+  state_vec = np.zeros((8,), ComplexType)
+  state_vec[1] = 1.0
+  axes = ["D0", "D1", "D2"]
+  sampler_cpp.bind_initial_state(state_vec, axes)
+
+  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
+
+  np.testing.assert_array_equal(reg_mat, [[1]])
