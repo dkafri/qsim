@@ -29,14 +29,22 @@ static inline void sample_kop(KOperation<fp_type>& op,
                               RegisterMap& registers,
                               double cutoff) {
 
+#ifdef DEBUG_SAMPLING
+  std::cout << "Sampling from operation " << op.label << std::endl;
+#endif
+
   //Extract conditional channel given current registers
   auto channel = op.channel_at(registers);
+
+
 
   //Only need to record a copy if more than one operator may be sampled.
   if (channel.size() > 1)
     tmp_state.copy_from(k_state);
   unsigned k_ind = 0;
   double norm2 = 1.0;
+
+
 
   //Sample operators
   for (auto& k_op : channel) {
@@ -46,15 +54,19 @@ static inline void sample_kop(KOperation<fp_type>& op,
       tmp_state.add_qubit(ax);
     }
 #ifdef DEBUG_SAMPLING
-    std::cout<<"state after adding qubits:\n";
-    k_state.print_amplitudes();
+    std::cout << "Trying operator " << k_ind << std::endl;
+    if (!k_op.added_axes.empty()) {
+      std::cout << "state after adding qubits:\n";
+      k_state.print_amplitudes();
+    } else
+      std::cout << "no qubits added...\n";
 #endif
 
     //Permute and apply matrix
     k_state.permute_and_apply(k_op.matrix, k_op.qubit_axes);
 
 #ifdef DEBUG_SAMPLING
-    std::cout<<"state after applying matrix:\n";
+    std::cout << "state after applying matrix:\n";
     k_state.print_amplitudes();
 #endif
 
@@ -63,7 +75,7 @@ static inline void sample_kop(KOperation<fp_type>& op,
     cutoff -= norm2;
     if (cutoff < 0) { // operator sampled
 #ifdef DEBUG_SAMPLING
-      std::cout << "operator sampled!\n";
+      std::cout << "operator " << k_ind << " sampled!\n";
 #endif
 
       // Apply swaps

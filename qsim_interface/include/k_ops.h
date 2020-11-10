@@ -123,9 +123,9 @@ struct KOperator {
   /** Print to cout for debugging purposes*/
   void print() const {
 
-    std::cout << "Matrix: (";
+    std::cout << " Matrix: (";
     for (size_t ii = 0; ii < matrix.size() / 2; ii++)
-      std::cout << matrix[2 * ii] << "+i*" << matrix[2 * ii + 1] << ", ";
+      std::cout << matrix[2 * ii] << "+i*" << matrix[2 * ii + 1] << ",";
     std::cout << ")";
     if (added_axes.size()) {
       std::cout << ", added: (";
@@ -189,10 +189,20 @@ struct KOperation {
   /** Return the channel conditioned on current values of classical registers.*/
   KChannel<fp_type> channel_at(std::unordered_map<std::string,
                                                   size_t>& registers) {
+#ifdef DEBUG_SAMPLING
+    std::cout << "Choosing conditional channel based on registers: (";
+#endif
     std::vector<size_t> reg_vals;
     for (const auto& reg : conditional_registers) {
       reg_vals.push_back(registers.at(reg));
+#ifdef DEBUG_SAMPLING
+      std::cout << reg << ":" << registers.at(reg) << ",";
+#endif
     }
+#ifdef DEBUG_SAMPLING
+    std::cout<< ")" << std::endl;
+#endif
+
     return channels.at(reg_vals);
   }
 
@@ -245,6 +255,7 @@ struct KOperation {
       std::cout << "): ";
       for (const auto& k_op: k_v.second)
         k_op.print();
+      std::cout << std::endl;
 
     }
     std::cout << "\nis_recorded: " << is_recorded << ", ";
