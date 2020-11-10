@@ -368,6 +368,13 @@ class KState {
   void permute_and_apply(qsim::Matrix<fp_type>& matrix,
                          std::vector<std::string>& axes) {
 
+    //Handle trivial case. Global phase is not observed by norm is adjusted.
+    if (matrix.size() == 2) {
+      const auto& x = matrix.at(0);
+      const auto& y = matrix.at(1);
+      rescale(sqrt(x * x + y * y));
+    }
+
     // Qubits for each axis, in reverse order to account for qsim representation
     auto qubits = qubits_vec(axes, true);
 
