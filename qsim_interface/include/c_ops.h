@@ -74,7 +74,22 @@ struct COperator {
     }
 
     //Write output values to register
+#ifndef NDEBUG
+    if (!data.count(input_vec)) {
+      std::cerr << "No output defined for register values: (";
+      for (const auto& val: input_vec)
+        std::cerr << val << ",";
+      std::cerr << "), for expected inputs (";
+      for (const auto& reg : inputs)
+        std::cerr << reg << ",";
+      std::cerr << "),\nand outputs (";
+      for (const auto& reg : outputs)
+        std::cerr << reg << ",";
+      std::cerr << ")\n";
+    }
     assert(data.count(input_vec));
+
+#endif
     const std::vector<size_t>& output_vec = data.at(input_vec);
     auto val_ptr = output_vec.begin();
     for (auto reg_ptr = outputs.begin(); reg_ptr != outputs.end();
