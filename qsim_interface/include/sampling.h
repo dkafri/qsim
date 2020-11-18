@@ -112,7 +112,7 @@ static inline void sample_kop(KOperation<fp_type>& op,
       std::cout << "\nNo kraus operator sampled for KOperation labeled (";
       std::cout << op.label << ").\nRemaining cutoff: " << cutoff
                 << ",\nmost recent norm2: " << norm2
-                << ",\ntotal summed norm2-1: " << norm2_tot-1
+                << ",\ntotal summed norm2-1: " << norm2_tot - 1
                 << ",\noriginal cutoff-1: " << original_cutoff - 1
                 << ",\ntotal summed - original = "
                 << norm2_tot - original_cutoff
@@ -121,9 +121,12 @@ static inline void sample_kop(KOperation<fp_type>& op,
 
       assert(false);
     }
-
 #endif
   }
+  // TODO: Fix this if qsim norm is revised.
+  // Sometimes floating point errors prevent the total Kraus operator
+  // probabilities from summing to one, so k_ind goes one above what is allowed.
+  k_ind = (k_ind == channel.size()) ? k_ind - 1 : k_ind;
 
   if (op.is_recorded) registers[op.label] = k_ind;
 
