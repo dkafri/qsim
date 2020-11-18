@@ -44,11 +44,15 @@ static inline void sample_kop(KOperation<fp_type>& op,
   unsigned k_ind = 0;
   double norm2 = 1.0;
 
-
+#ifndef NDEBUG
+  double norm2_tot = 0.0;
+  double original_cutoff = cutoff;
+  double original_norm2 = k_state.norm_squared();
+#endif
 
   //Sample operators
   for (auto& k_op : channel) {
-    //Add required axes
+    //Add required qubits to axes
     for (const auto& ax: k_op.added_axes) {
       k_state.add_qubit(ax);
       tmp_state.add_qubit(ax);
@@ -72,11 +76,11 @@ static inline void sample_kop(KOperation<fp_type>& op,
 
     if (channel.size() > 1) // norm must be 1 if only one operator present.
       norm2 = k_state.norm_squared();
+#ifndef NDEBUG
+    norm2_tot += norm2;
+#endif
     cutoff -= norm2;
     if (cutoff < 0) { // operator sampled
-#ifdef DEBUG_SAMPLING
-      std::cout << "operator " << k_ind << " sampled!\n";
-#endif
 
       // Apply swaps
       for (auto ii = 0; ii < k_op.swap_sources.size(); ii++) {
@@ -102,6 +106,23 @@ static inline void sample_kop(KOperation<fp_type>& op,
     k_state.remove_qubits_of(k_op.added_axes);
     tmp_state.remove_qubits_of(k_op.added_axes);
     k_ind++;
+
+#ifndef NDEBUG
+    if (k_ind >= channel.size()) {
+      std::cout << "\nNo kraus operator sampled for KOperation labeled (";
+      std::cout << op.label << ").\nRemaining cutoff: " << cutoff
+                << ",\nmost recent norm2: " << norm2
+                << ",\ntotal summed norm2-1: " << norm2_tot-1
+                << ",\noriginal cutoff-1: " << original_cutoff - 1
+                << ",\ntotal summed - original = "
+                << norm2_tot - original_cutoff
+                << ",\noriginal state vector norm -1: " << original_norm2 - 1
+                << ".\n";
+
+      assert(false);
+    }
+
+#endif
   }
 
   if (op.is_recorded) registers[op.label] = k_ind;
