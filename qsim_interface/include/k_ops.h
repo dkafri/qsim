@@ -192,9 +192,12 @@ struct KOperation {
 #ifdef DEBUG_SAMPLING
     std::cout << "Choosing conditional channel based on registers: (";
 #endif
+
     std::vector<size_t> reg_vals;
     for (const auto& reg : conditional_registers) {
+      assert(registers.count(reg));
       reg_vals.push_back(registers.at(reg));
+
 #ifdef DEBUG_SAMPLING
       std::cout << reg << ":" << registers.at(reg) << ",";
 #endif
@@ -203,6 +206,7 @@ struct KOperation {
     std::cout<< ")" << std::endl;
 #endif
 
+    assert(channels.count(reg_vals));
     return channels.at(reg_vals);
   }
 
