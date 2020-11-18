@@ -86,6 +86,12 @@ void test_state_creation_destruction_case(bool swap_cnot) {
 
 void test_state_creation_destruction() {
 
+#ifdef NDEBUG
+  cout << "Running tests without assertions...\n";
+#else
+  cout << "Running tests with assertions...\n";
+#endif
+
   TEST_CASE("swap");
   test_state_creation_destruction_case(true);
 

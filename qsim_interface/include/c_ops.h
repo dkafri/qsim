@@ -68,8 +68,10 @@ struct COperator {
     std::vector<size_t> input_vec;
     input_vec.reserve(inputs.size());
 
-    for (auto&& reg  :inputs)
+    for (auto&& reg  :inputs) {
+      assert(registers.count(reg));
       input_vec.push_back(registers.at(reg));
+    }
 
     //Write output values to register
     const std::vector<size_t>& output_vec = data.at(input_vec);
@@ -132,6 +134,7 @@ struct CChannel {
       return;
 
     //Sample operator to apply
+    assert(0 <= cutoff && cutoff < 1);
     auto cop_ptr = operators.begin();
     for (const auto& prob : probs) {
       cutoff -= prob;
@@ -209,12 +212,20 @@ struct COperation {
     std::vector<size_t> cond_vec;
     cond_vec.reserve(conditional_registers.size());
 
-    for (const auto& reg : conditional_registers)
+    for (const auto& reg : conditional_registers) {
+      assert(registers.count(reg));
       cond_vec.push_back(registers.at(reg));
+    }
+
 
 
     // Apply appropriate channel
     const auto& channel = channels.at(cond_vec);
+#ifdef NDEBUG
+    for (const auto & reg : added){
+      assert(registers.count(reg));
+    }
+#endif
     channel.apply(registers, cutoff);
   }
 
