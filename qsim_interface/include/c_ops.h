@@ -26,13 +26,33 @@ struct COperator {
  * deletes all input registers.*/
 
   /** assert that data has required structure.*/
-  void validate(const std::set<std::string>& added) const {
+  void validate() const {
     for (const auto& key_value : data) {
-      assert(key_value.first.size() == inputs.size());
-      assert(key_value.second.size() == outputs.size());
+      if (key_value.first.size() != inputs.size()) {
+        std::stringstream ss;
+        ss << "COperation: Tuple of input register values (";
+        for (const auto& val: key_value.first)
+          ss << val << ",";
+        ss << ") does is inconsistent with the length of inputs (";
+        for (const auto& reg : inputs)
+          ss << reg << ",";
+        ss << ").";
+        throw std::runtime_error(ss.str());
+      }
+      if (key_value.second.size() != outputs.size()){
+        std::stringstream ss;
+        ss << "COperation: Tuple of output register values (";
+        for (const auto& val: key_value.second)
+          ss << val << ",";
+        ss << ") does is inconsistent with the length of outputs (";
+        for (const auto& reg : outputs)
+          ss << reg << ",";
+        ss << ").";
+        throw std::runtime_error(ss.str());
+      }
+
     }
-    for (const auto& reg: added) // Check each element of added is in outputs.
-      assert(std::find(outputs.begin(), outputs.end(), reg) != outputs.end());
+
   }
 
   /** Apply this operator to a set of classical registers.*/
@@ -80,8 +100,17 @@ struct CChannel {
     }
 
     assert(fabs(1.0 - sum) < 1e-12);
-    for (const auto& op:operators)
-      op.validate(added);
+    for (const auto& op:operators) {
+      op.validate();
+      for (const auto& reg: added) // Check each element of added is in outputs.
+        if (std::find(op.outputs.begin(), op.outputs.end(), reg)
+            == op.outputs.end()) {
+          throw std::runtime_error(
+              "Added axis ( " + reg + " ) not present in classical operator "
+                                      "outputs.");
+        }
+    }
+
   }
 
   /** Apply this operation to a set of classical registers.*/
