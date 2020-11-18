@@ -4,7 +4,24 @@ project(qsim)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DNDEBUG")
+# Change CXX flags depending on build type.
+set(default_build_type "Release")
+if (NOT CMAKE_BUILD_TYPE)
+    message(STATUS "Setting build type to '${default_build_type}' as none was
+    specified.")
+    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+            STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
+endif ()
+
+if (${CMAKE_BUILD_TYPE} MATCHES "Release")
+    message(STATUS "Compiling release build.")
+    set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DNDEBUG")
+else ()
+    message(STATUS "Compiling ${CMAKE_BUILD_TYPE} build.")
+    set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp")
+endif ()
 #set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DDEBUG_SAMPLING")
 
 
@@ -15,9 +32,10 @@ message(STATUS "C++ compiler : ${CMAKE_CXX_COMPILER}")
 
 include_directories(../lib include)
 
-
-add_executable(state_rep_tests state_rep_tests.cc)
-add_executable(sampling_tests sampling_tests.cc)
+if (${CMAKE_BUILD_TYPE} MATCHES "Debug") # also compile tests if in debug mode
+    add_executable(state_rep_tests state_rep_tests.cc)
+    add_executable(sampling_tests sampling_tests.cc)
+endif ()
 
 add_subdirectory(extern/pybind11)
 

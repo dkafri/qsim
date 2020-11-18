@@ -23,7 +23,21 @@ class CMakeExtension(Extension):
     self.sourcedir = os.path.abspath(sourcedir)
 
 
+# I do not know of a simpler way of passing the debug command to setup.py.
+# Presumably this is not necessary but I don't know how to directly specify
+# the debug attribute.
+DEBUG = False
+if "--debug" in sys.argv:
+  DEBUG = True
+  sys.argv.remove("--debug")
+
+
 class CMakeBuild(build_ext):
+
+  def __init__(self, dist):
+    super().__init__(dist)
+    self.debug = DEBUG
+
   def run(self):
     try:
       out = subprocess.check_output(['cmake', '--version'])
