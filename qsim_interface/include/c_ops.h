@@ -39,7 +39,7 @@ struct COperator {
         ss << ").";
         throw std::runtime_error(ss.str());
       }
-      if (key_value.second.size() != outputs.size()){
+      if (key_value.second.size() != outputs.size()) {
         std::stringstream ss;
         ss << "COperation: Tuple of output register values (";
         for (const auto& val: key_value.second)
@@ -89,17 +89,29 @@ struct CChannel {
 
   /** Assert that data satisfies requirements.*/
   void validate(const std::set<std::string>& added) const {
-    assert(operators.size() == probs.size());
+
+    if (operators.size() != probs.size()) {
+      std::stringstream ss;
+      ss << "Number of operators for CChannel (" << operators.size() << ") ";
+      ss << "does not equal number of probabilities (" << probs.size() << ").";
+      throw std::runtime_error(ss.str());
+    }
     if (operators.empty())
       return;
 
     double sum = 0.0;
     for (const auto& prob : probs) {
-      assert(0 <= prob && prob <= 1);
+      if (0 > prob || prob > 1)
+        throw std::runtime_error("COperator probability not between 0 and 1.");
       sum += prob;
     }
 
-    assert(fabs(1.0 - sum) < 1e-12);
+    if (fabs(1.0 - sum) > 1e-12) {
+      std::stringstream ss;
+      ss << "Sum of COperator probabilities " << sum << " is not close to 1.";
+      throw std::runtime_error(ss.str());
+    }
+
     for (const auto& op:operators) {
       op.validate();
       for (const auto& reg: added) // Check each element of added is in outputs.
