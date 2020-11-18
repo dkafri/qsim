@@ -74,6 +74,7 @@ struct COperator {
     }
 
     //Write output values to register
+    assert(data.count(input_vec));
     const std::vector<size_t>& output_vec = data.at(input_vec);
     auto val_ptr = output_vec.begin();
     for (auto reg_ptr = outputs.begin(); reg_ptr != outputs.end();
@@ -220,6 +221,7 @@ struct COperation {
 
 
     // Apply appropriate channel
+    assert(channels.count(cond_vec));
     const auto& channel = channels.at(cond_vec);
 #ifdef NDEBUG
     for (const auto & reg : added){
