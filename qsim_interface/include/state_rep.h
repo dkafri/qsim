@@ -131,11 +131,8 @@ class KState {
 
   /** Move constructor*/
   KState(KState&& k_state) noexcept
-      : num_threads(0),
-        max_qubits_(0),
-        own_memory(true),
-      //We need to initialize state_vec because State has no trivial
-      // constructor.
+      : //We need to initialize state_vec because State has no trivial
+        // constructor.
         state_vec(StateSpace::Null()) {
     *this = std::move(k_state);
   }

@@ -302,7 +302,6 @@ void test_kstate_apply_2q_gate() {
 
 void test_kstate_transfer_qubits() {
   KState<Simulator> k_state(3, 5, vector<string>{"a", "a"});
-  using StateSpace = KState<Simulator>::StateSpace;
 
   auto a_qubits = k_state.qubits_of("a");
   k_state.transfer_qubits("a", "b");
