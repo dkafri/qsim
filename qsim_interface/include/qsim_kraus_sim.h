@@ -58,7 +58,7 @@ class Sampler {
   // We do not allocate memory for the constructed initial state since we
   // assume memory will be externally allocated.
   Sampler(size_t num_threads, bool consistent_axis_order)
-      : num_threads(num_threads), consistent_axis_order(consistent_axis_order),
+      : consistent_axis_order(consistent_axis_order), num_threads(num_threads),
         init_kstate(num_threads, 1, std::vector<std::string>{}) {
     std::random_device rd;
     rgen = std::mt19937(rd());
@@ -118,7 +118,7 @@ class Sampler {
     // Manually write each amplitude into the initial state.
     // TODO: figure out how to do this properly with the pointer constructor.
     auto state = init_kstate.active_state();
-    for (size_t ii = 0; ii < array.size(); ii++)
+    for (pybind11::ssize_t ii = 0; ii < array.size(); ii++)
       StateSpace::SetAmpl(state, ii, array.at(ii));
 
 #ifdef DEBUG_SAMPLING
