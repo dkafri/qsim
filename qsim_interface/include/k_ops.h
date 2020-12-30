@@ -70,8 +70,8 @@ struct KOperator {
             const std::vector<std::string>& removed_axes
   )
       : matrix(matrix),
-        qubit_axes(qubit_axes),
         added_axes(added_axes),
+        qubit_axes(qubit_axes),
         swap_sources(swap_sources),
         swap_sinks(swap_sinks),
         removed_axes(removed_axes) {
@@ -215,20 +215,22 @@ struct KOperation {
                       bool is_recorded = false,
                       std::string label = "unlabeled op",
                       bool is_virtual = false)
-      : is_virtual(is_virtual),
-        label(std::move(label)),
+      : channels{{{}, {k_op}}},
+        conditional_registers{},
         is_recorded(is_recorded),
-        channels{{{}, {k_op}}} {}
+        label(std::move(label)),
+        is_virtual(is_virtual) {}
 
   /** Unconditioned operation constructor */
   explicit KOperation(const KChannel<fp_type>& channel,
                       bool is_recorded = false,
                       std::string label = "unlabeled op",
                       bool is_virtual = false)
-      : is_virtual(is_virtual),
-        label(std::move(label)),
+      : channels{{{}, channel}},
+        conditional_registers{},
         is_recorded(is_recorded),
-        channels{{{}, channel}} {}
+        label(std::move(label)),
+        is_virtual(is_virtual) {}
 
   /** General constructor with conditional registers*/
   explicit KOperation(const ChannelMap& channel_map,
