@@ -42,6 +42,7 @@ DEBUG = False
 if "--debug" in sys.argv:
   DEBUG = True
   sys.argv.remove("--debug")
+  __version__ += '-debug'
 
 
 class CMakeBuild(build_ext):
