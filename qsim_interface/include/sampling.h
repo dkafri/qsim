@@ -83,7 +83,7 @@ static inline void sample_kop(KOperation<fp_type>& op,
     if (cutoff < 0) { // operator sampled
 
       // Apply swaps
-      for (auto ii = 0; ii < k_op.swap_sources.size(); ii++) {
+      for (std::size_t ii = 0; ii < k_op.swap_sources.size(); ii++) {
         k_state.transfer_qubits(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
       }
       // Remove axes
