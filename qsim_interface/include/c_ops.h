@@ -193,9 +193,8 @@ struct COperation {
   explicit COperation(const COperator& op,
                       std::set<std::string> added,
                       bool is_virtual = false)
-      : is_virtual(is_virtual),
-        channels{{{}, CChannel{{op}, {1.0}}}},
-        added(std::move(added)) {
+      : channels{{{}, CChannel{{op}, {1.0}}}}, conditional_registers{},
+        added(std::move(added)), is_virtual(is_virtual) {
     validate();
   }
 
@@ -203,8 +202,8 @@ struct COperation {
   explicit COperation(const CChannel& channel,
                       std::set<std::string> added,
                       bool is_virtual = false)
-      : is_virtual(is_virtual), channels{{{}, channel}},
-        added(std::move(added)) { validate(); }
+      : channels{{{}, channel}}, conditional_registers{},
+        added(std::move(added)), is_virtual(is_virtual) { validate(); }
 
   /** Generic constructor */
   COperation(ChannelMap cmap,
@@ -213,8 +212,7 @@ struct COperation {
              bool is_virtual = false)
       : channels(std::move(cmap)),
         conditional_registers(std::move(conditional_registers)),
-        is_virtual(is_virtual),
-        added(std::move(added)) { validate(); }
+        added(std::move(added)), is_virtual(is_virtual) { validate(); }
 
   /** Apply this operation to a set of classical registers.*/
   void apply(std::unordered_map<std::string, size_t>& registers,
