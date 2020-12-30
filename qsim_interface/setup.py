@@ -1,3 +1,15 @@
+"""Script to compile and install the qsim_kraus_sim pybind interface.
+
+Standard usage:
+python setup.py install
+
+To build a "debug" version, do
+python setup.py --debug install
+this will compile the C++ code with assertions on, which will hurt performance
+but may help with catching bugs.
+
+"""
+
 import os
 import re
 import sys
