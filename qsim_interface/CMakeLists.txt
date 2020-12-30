@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.11)
 project(qsim)
 
+# To do a "debug" compilation, add the following flag to cmake:
+# -DCMAKE_BUILD_TYPE=Debug
+# This generates some tests and uses the ggdb3 compilation flag for easier
+# memory leak tracking with valgrind. It will also considerably slow down the
+# compilation.
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -20,7 +26,7 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Release")
     set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DNDEBUG")
 else ()
     message(STATUS "Compiling ${CMAKE_BUILD_TYPE} build.")
-    set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp")
+    set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -ggdb3 -Wall")
 endif ()
 #set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DDEBUG_SAMPLING")
 
