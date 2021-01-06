@@ -111,7 +111,7 @@ static inline void sample_kop(KOperation<fp_type>& op,
     // Rarely floating point errors prevent the total Kraus operator
     // probabilities from summing to one. We correct this case below, but want
     // to confirm that the total cutoff is only very slightly positive.
-    ASSERT(k_ind < channel.size() || cutoff < 3e-7,
+    ASSERT(k_ind < channel.size() || cutoff < 5e-7,
            "\nNo kraus operator sampled for KOperation labeled ("
                << op.label << ").\n Remaining cutoff: " << cutoff
                << ",\nmost recent norm2: " << norm2
