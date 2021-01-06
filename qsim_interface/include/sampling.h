@@ -10,6 +10,7 @@
 #include "state_rep.h"
 #include "c_ops.h"
 #include "variant.hpp"
+#include <test_utils.h>
 
 using RegisterMap=std::unordered_map<std::string, size_t>;
 
@@ -107,21 +108,17 @@ static inline void sample_kop(KOperation<fp_type>& op,
     tmp_state.remove_qubits_of(k_op.added_axes);
     k_ind++;
 
-#ifndef NDEBUG
-    if (k_ind >= channel.size()) {
-      std::cout << "\nNo kraus operator sampled for KOperation labeled (";
-      std::cout << op.label << ").\nRemaining cutoff: " << cutoff
-                << ",\nmost recent norm2: " << norm2
-                << ",\ntotal summed norm2-1: " << norm2_tot - 1
-                << ",\noriginal cutoff-1: " << original_cutoff - 1
-                << ",\ntotal summed - original = "
-                << norm2_tot - original_cutoff
-                << ",\noriginal state vector norm -1: " << original_norm2 - 1
-                << ".\n";
+    ASSERT(k_ind < channel.size(),
+           "\nNo kraus operator sampled for KOperation labeled ("
+               << op.label << ").\n Remaining cutoff: " << cutoff
+               << ",\nmost recent norm2: " << norm2
+               << ",\ntotal summed norm2-1: " << norm2_tot - 1
+               << ",\noriginal cutoff-1: " << original_cutoff - 1
+               << ",\ntotal summed - original = "
+               << norm2_tot - original_cutoff
+               << ",\noriginal state vector norm -1: " << original_norm2 - 1
+               << ".\n");
 
-      assert(false);
-    }
-#endif
   }
   // TODO: Fix this if qsim norm is revised.
   // Sometimes floating point errors prevent the total Kraus operator
