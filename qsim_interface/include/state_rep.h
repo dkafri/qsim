@@ -18,6 +18,7 @@
 #include <functional>
 #include "../../lib/matrix.h"
 #include "../../lib/gates_cirq.h"
+#include "test_utils.h"
 
 template<typename fp_type>
 inline void match_to_reverse_qubits(std::vector<unsigned>& qubits,
@@ -518,6 +519,8 @@ class KState {
     std::vector<unsigned> out{};
     out.reserve(axes.size());
 
+    // Keep a dictionary of iterators (forward or reverse) for each axis.
+    // The iterators point to the next, yet to be added qubit of that axis.
     if (reverse) {
       using IterType=AxisQubits::mapped_type::const_reverse_iterator;
 
@@ -529,7 +532,9 @@ class KState {
         if (iters.count(*axis_ptr)) iter = iters.at(*axis_ptr);
         else iter = axis_qubits[*axis_ptr].rbegin();
 
-        assert(iter != axis_qubits[*axis_ptr].rend());
+        ASSERT(iter != axis_qubits[*axis_ptr].rend(),
+               "Tried to access a qubit for axis " << *axis_ptr <<
+               " but none exists.");
         out.push_back(*iter);
         iters[*axis_ptr] = ++iter;
       }
