@@ -108,7 +108,10 @@ static inline void sample_kop(KOperation<fp_type>& op,
     tmp_state.remove_qubits_of(k_op.added_axes);
     k_ind++;
 
-    ASSERT(k_ind < channel.size(),
+    // Rarely floating point errors prevent the total Kraus operator
+    // probabilities from summing to one. We correct this case below, but want
+    // to confirm that the total cutoff is only very slightly positive.
+    ASSERT(k_ind < channel.size() || cutoff < 1e-7,
            "\nNo kraus operator sampled for KOperation labeled ("
                << op.label << ").\n Remaining cutoff: " << cutoff
                << ",\nmost recent norm2: " << norm2
@@ -121,8 +124,6 @@ static inline void sample_kop(KOperation<fp_type>& op,
 
   }
   // TODO: Fix this if qsim norm is revised.
-  // Sometimes floating point errors prevent the total Kraus operator
-  // probabilities from summing to one, so k_ind goes one above what is allowed.
   k_ind = (k_ind == channel.size()) ? k_ind - 1 : k_ind;
 
   if (op.is_recorded) registers[op.label] = k_ind;
