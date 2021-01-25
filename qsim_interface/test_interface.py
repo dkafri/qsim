@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import qsim_kraus_sim as pbi
 
 ComplexType = np.dtype('complex64')
