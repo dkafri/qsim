@@ -30,10 +30,6 @@ static inline void sample_kop(KOperation<fp_type>& op,
                               RegisterMap& registers,
                               double cutoff) {
 
-#ifdef DEBUG_SAMPLING
-  std::cout << "Sampling from operation " << op.label << std::endl;
-#endif
-
   //Extract conditional channel given current registers
   auto channel = op.channel_at(registers);
 
@@ -58,22 +54,10 @@ static inline void sample_kop(KOperation<fp_type>& op,
       k_state.add_qubit(ax);
       tmp_state.add_qubit(ax);
     }
-#ifdef DEBUG_SAMPLING
-    std::cout << "Trying operator " << k_ind << std::endl;
-    if (!k_op.added_axes.empty()) {
-      std::cout << "state after adding qubits:\n";
-      k_state.print_amplitudes();
-    } else
-      std::cout << "no qubits added...\n";
-#endif
 
     //Permute and apply matrix
     k_state.permute_and_apply(k_op.matrix, k_op.qubit_axes);
 
-#ifdef DEBUG_SAMPLING
-    std::cout << "state after applying matrix:\n";
-    k_state.print_amplitudes();
-#endif
 
     if (channel.size() > 1) // norm must be 1 if only one operator present.
       norm2 = k_state.norm_squared();
@@ -93,10 +77,6 @@ static inline void sample_kop(KOperation<fp_type>& op,
       if (channel.size() > 1)
         k_state.rescale(1 / sqrt(norm2));
 
-#ifdef DEBUG_SAMPLING
-      std::cout << "state after swaps and removes and normalization:\n";
-      k_state.print_amplitudes();
-#endif
       break;
     }
     // Operator not sampled -> backtrack. Copy original vector before
@@ -144,20 +124,9 @@ inline void sample_op(Operation<fp_type>& op,
   if (mpark::holds_alternative<COperation>(op)) {
     const auto& c_op = mpark::get<COperation>(op);
     c_op.apply(registers, cutoff);
-#ifdef DEBUG_SAMPLING
-    std::cout << "new register values:\n";
-    for (const auto& k_v: registers)
-      std::cout << k_v.first << ": " << k_v.second << std::endl;
-#endif
   } else if (mpark::holds_alternative<KOperation<fp_type>>(op)) {
     auto& k_op = mpark::get<KOperation<fp_type>>(op);
     sample_kop(k_op, k_state, tmp_state, registers, cutoff);
-#ifdef DEBUG_SAMPLING
-    std::cout << "quantum state after " << k_op.label << std::endl;
-    k_state.print_amplitudes();
-    std::cout << "qubit axes: ";
-    k_state.print_qubit_axes();
-#endif
   }
 }
 
