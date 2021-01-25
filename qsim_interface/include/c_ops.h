@@ -87,6 +87,7 @@ struct COperator {
         std::cerr << reg << ",";
       std::cerr << ")\n";
     }
+    assert(data.count(input_vec));
 
 #endif
     const std::vector<size_t>& output_vec = data.at(input_vec);
@@ -220,13 +221,6 @@ struct COperation {
     if (channels.empty())
       return;
 
-# ifndef NDEBUG
-    for ( const auto & reg : added){
-      ASSERT(!registers.count(reg),
-          "Classical operation with added register (" <<reg << ")"
-          << " applied to a register map already containing this register.");
-    }
-#endif
 
     //Read conditional registers
     std::vector<size_t> cond_vec;
