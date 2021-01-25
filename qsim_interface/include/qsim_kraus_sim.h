@@ -100,22 +100,22 @@ class Sampler {
     if ((array_size & (array_size - 1)) != 0)
       throw std::runtime_error("Input array size is not a power of 2.");
 
-    unsigned max_qubits = 0;
+    unsigned num_qubits = 0;
     while (array_size > 1) {
       array_size >>= 1;
-      max_qubits++;
+      num_qubits++;
     }
 
-    if (axes.size() != max_qubits)
+    if (axes.size() != num_qubits)
       throw std::runtime_error(
           "array size " + std::to_string(array.size()) + " corresponds to "
-              + std::to_string(max_qubits) + " qubits but "
+              + std::to_string(num_qubits) + " qubits but "
               + std::to_string(axes.size()) + " axes are specified.\n");
 
     //Assign axes backwards to match qsim order
     std::vector<std::string> axes_r(axes.rbegin(), axes.rend());
     init_kstate =
-        std::move(KState<Simulator>(num_threads, max_qubits, std::move(axes_r))
+        std::move(KState<Simulator>(num_threads, num_qubits, std::move(axes_r))
         );
 
     // Manually write each amplitude into the initial state.
