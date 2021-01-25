@@ -212,3 +212,48 @@ def test_multiply_by_scalar():
   reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
 
   np.testing.assert_array_equal(reg_mat, [[1]])
+
+# Note: the exception is only thrown if the backend is compiled in debug mode.
+def test_add_virtual_register_twice_throws_error():
+  sampler_cpp = pbi.Sampler(3, True)
+
+  sampler_cpp.set_initial_registers({"a": 0, "c": 1})
+
+  copy_data = {(0,): (0,),
+               (1,): (1,)}
+  copy_flip = {(0,): (1,),
+               (1,): (0,)}
+
+  # Virtual operaton that, conditioned on 'c', applies either a copy or a flip
+  # copy from a to a new register b.
+  channels_map = {(0,): ([[copy_data, ("a",), ("b",)],
+                          [copy_flip, ("a",), ("b",)]], [.8, .2]),
+                  (1,): ([[copy_data, ("a",), ("b",)],
+                          [copy_flip, ("a",), ("b",)]], [.6, .4])
+                  }
+
+  sampler_cpp.add_coperation(channels_map, ("c",), {"b"}, True)
+
+  # Concretely copy c to a
+  channels_map = {(): ([[copy_data, ("c",), ("a",)]], [1.0])}
+  sampler_cpp.add_coperation(channels_map, (), set(), False)
+
+  # Repeat the original virtual operation that again creates b
+  channels_map = {(0,): ([[copy_data, ("a",), ("b",)],
+                          [copy_flip, ("a",), ("b",)]], [.8, .2]),
+                  (1,): ([[copy_data, ("a",), ("b",)],
+                          [copy_flip, ("a",), ("b",)]], [.6, .4])
+                  }
+
+  sampler_cpp.add_coperation(channels_map, ("c",), {"b"}, True)
+
+  sampler_cpp.set_register_order(('a', 'c'))
+
+  # Implement sampling
+  state_vec = np.zeros((8,), ComplexType)
+  state_vec[1] = 1.0
+  axes = ["D0", "D1", "D2"]
+  sampler_cpp.bind_initial_state(state_vec, axes)
+
+  with pytest.raises(RuntimeError):
+    reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
