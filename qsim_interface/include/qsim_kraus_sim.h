@@ -67,11 +67,14 @@ class Sampler {
 /** Seed the random number generator */
   void set_random_seed(size_t seed) { rgen = std::mt19937(seed); }
 
+/** Specify classical registers that exist at the start of the simulation.*/
   void set_initial_registers(const RegisterMap& registers) {
     init_registers.clear();
     for (const auto& k_v: registers) init_registers.insert(k_v);
   };
 
+/** Specify order of registers that are to be returned at the end of a
+ *  a simulation. Registers not included in this sequence are not recorded.*/
   void set_register_order(const std::vector<std::string>& order) {
     register_order = order;
   };
@@ -79,7 +82,7 @@ class Sampler {
   /** Set pointer to initial state vector data.
    *
    * User is responsible for allocating a complex<fp_type> vector of size
-   * 2^max_qubits.
+   * 2^num_qubits (we assume each qubit has 2 levels).
    *
    * @param array: complex numpy array storing state vector data.
    * @param axes: axis ordering for the tensor representation of the state
