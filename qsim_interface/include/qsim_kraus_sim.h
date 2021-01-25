@@ -204,7 +204,7 @@ class Sampler {
       channel_map.emplace(cond_reg, build_cchannel(channel_data));
     }
 
-    ops.emplace_back(COperation(channel_map,
+    ops.emplace_back(COperation(std::move(channel_map),
                                 conditional_registers, std::move(added),
                                 is_virtual));
 

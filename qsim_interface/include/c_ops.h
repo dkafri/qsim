@@ -206,7 +206,7 @@ struct COperation {
         added(std::move(added)), is_virtual(is_virtual) { validate(); }
 
   /** Generic constructor */
-  COperation(ChannelMap cmap,
+  COperation(ChannelMap && cmap,
              std::vector<std::string> conditional_registers,
              std::set<std::string> added,
              bool is_virtual = false)
