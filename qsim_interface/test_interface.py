@@ -138,7 +138,8 @@ def test_samples_1():
 
     # prepare "c" in 0 state
     channels = {
-        (): [[np.array([1, 0, 0, 0], ComplexType), ["c"], ["c"], [], [], []]]
+        (): [[np.array([1, 0,
+                        0, 0], ComplexType), ["c"], ["c"], [], [], []]]
     }
 
     sampler_cpp.add_koperation(channels, (), False, "prep c", False)
@@ -188,6 +189,48 @@ def test_state_prep():
     assert not np.any(np.isnan(out_arrays[0]))
 
 
+def test_state_prep_and_removal_repeated():
+  sampler_cpp = pbi.Sampler(2, True)
+  sampler_cpp.set_random_seed(11)
+
+  sampler_cpp.set_initial_registers({})
+
+  # prepare "d" in 0 state
+
+  channel_prep = {
+      (): [[np.array([1, 0,
+                      0, 0], ComplexType), ["M0"], ["M0"], [], [], []]]
+  }
+
+  # destructively measure "d"
+  channel_meas = {
+      (): [[np.array([1, 0,
+                      0, 0], ComplexType), [], ["M0"], [], [], ["M0"]],
+           [np.array([0, 1,
+                      0, 0], ComplexType), [], ["M0"], [], [], ["M0"]]
+           ]
+  }
+
+  m_label_0 = "M0-0"
+  m_label_1 = "M0-1"
+  sampler_cpp.add_koperation(channel_prep, (), False, "prep M0", False)
+  sampler_cpp.add_koperation(channel_meas, (), True, m_label_0, False)
+  sampler_cpp.add_koperation(channel_prep, (), False, "prep M0", False)
+  sampler_cpp.add_koperation(channel_meas, (), True, m_label_1, False)
+
+  sampler_cpp.set_register_order((m_label_0, m_label_1))
+
+  state_vec = np.zeros((1,), ComplexType)
+  state_vec[0] = 1.0
+  axes = []
+  sampler_cpp.bind_initial_state(state_vec, axes)
+
+  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(2)
+  out_arrays = np.array([arr.view(ComplexType) for arr in out_arrays])
+  assert not np.any(np.isnan(out_arrays[0]))
+  np.testing.assert_array_equal(reg_mat, np.zeros_like(reg_mat))
+
+
 def test_multiply_by_scalar():
   sampler_cpp = pbi.Sampler(1, True)
   sampler_cpp.set_random_seed(11)
@@ -213,6 +256,7 @@ def test_multiply_by_scalar():
   reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
 
   np.testing.assert_array_equal(reg_mat, [[1]])
+
 
 # Note: the exception is only thrown if the backend is compiled in debug mode.
 def test_add_virtual_register_twice_throws_error():
