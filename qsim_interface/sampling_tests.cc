@@ -33,37 +33,49 @@ void test_state_creation_destruction_case(bool swap_cnot) {
   vector<Operation<fp_type>> ops;
 
   //Create "c" qubit in + state
+  using KOpType = KOperation<fp_type>;
   auto sqrt_half = fp_type(qsim::Cirq::is2_double);
-  KOperator<fp_type> c_plus{{sqrt_half, 0, 0, 0, sqrt_half, 0, 0, 0},
-                            {"c"}, {"c"}, {}, {}, {}};
-  ops.emplace_back(KOperation<fp_type>(c_plus));
+  auto c_plus = KOperation<fp_type>(KOperator<fp_type>
+                                        {{sqrt_half, 0, 0, 0, sqrt_half, 0, 0,
+                                          0},
+                                         {"c"}, {"c"}, {}, {}, {}});
 
   //CNOT between "c" and "a"
+  unique_ptr<KOpType> CNOT_op_ptr;
   if (swap_cnot) {
     KOperator<fp_type> CNOT{{1, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 1, 0,
                              0, 0, 0, 0, 1, 0, 0, 0,
                              0, 0, 1, 0, 0, 0, 0, 0}, {}, {"a", "c"}, {}, {},
                             {}};
-    ops.emplace_back(KOperation<fp_type>(CNOT));
+    CNOT_op_ptr = make_unique<KOpType>(KOperation<fp_type>(CNOT));
   } else {
     KOperator<fp_type> CNOT{{1, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 1, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 1, 0,
                              0, 0, 0, 0, 1, 0, 0, 0}, {}, {"c", "a"}, {}, {},
                             {}};
-    ops.emplace_back(KOperation<fp_type>(CNOT));
+    CNOT_op_ptr = make_unique<KOpType>(KOperation<fp_type>(CNOT));
   }
 
-
-
-  // Measure "a" destructively
+  // Measure "c" destructively
   KOperator<fp_type> meas_0{{1, 0, 0, 0,
-                             0, 0, 0, 0}, {}, {"a"}, {}, {}, {"a"}};
+                             0, 0, 0, 0}, {}, {"c"}, {}, {}, {"c"}};
   KOperator<fp_type> meas_1{{0, 0, 1, 0,
-                             0, 0, 0, 0}, {}, {"a"}, {}, {}, {"a"}};
-  string m_label = "a";
-  ops.emplace_back(KOperation<fp_type>({meas_0, meas_1}, true, m_label));
+                             0, 0, 0, 0}, {}, {"c"}, {}, {}, {"c"}};
+
+  string m_label_0 = "c0";
+  auto measure_c = KOperation<fp_type>({meas_0, meas_1}, true, m_label_0);
+  string m_label_1 = "c1";
+  auto measure_c_1 = KOperation<fp_type>({meas_0, meas_1}, true, m_label_1);
+
+  ops.emplace_back(c_plus);
+  ops.emplace_back(*CNOT_op_ptr);
+  ops.emplace_back(measure_c);
+  ops.emplace_back(c_plus);
+  ops.emplace_back(*CNOT_op_ptr);
+  ops.emplace_back(measure_c_1);
+
 
   random_device rd;
   std::mt19937 rgen(rd());
@@ -73,12 +85,16 @@ void test_state_creation_destruction_case(bool swap_cnot) {
   RegisterMap final_registers;
   for (size_t ii = 0; ii < 100; ii++) {
     k_state.copy_from(initial_state);
+    tmp_state.copy_from(initial_state);
     final_registers = sample_sequence(ops, k_state, tmp_state, {}, rgen, {});
 
-    // remaining axes are "bc", so 0 and 1 are |00> and |01>
-    k_state.order_axes({"c", "b"});
-    auto m_val = final_registers.at(m_label); // a measurement maps to c state
-    auto actual = StateSpace::GetAmpl(k_state.active_state(), m_val);
+    // (assuming order abc:)
+    // number of 1 measurements on c equals number of flips of a
+    k_state.order_axes({"a", "b"});
+    auto m_val_0 = final_registers.at(m_label_0);
+    auto m_val_1 = final_registers.at(m_label_1);
+    auto expected = (m_val_0 + m_val_1) % 2;
+    auto actual = StateSpace::GetAmpl(k_state.active_state(), expected);
     TEST_CHECK(equals(actual, one));
 
   }
@@ -193,7 +209,7 @@ void test_virtual_operations_no_effect() {
   TEST_CHECK(final_registers.at(vm_label) == 1);
   TEST_CHECK(final_registers.at(vm_label2) == 1);
   // but "a" was not destroyed or flipped.
-  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{0}));
+  TEST_CHECK(k_state.qubit_of("a") == 0);
 
   k_state.order_axes({"b", "a"});
   auto state = k_state.active_state();
@@ -203,14 +219,14 @@ void test_virtual_operations_no_effect() {
 
 #if DEBUG
 int main() {
-
+  test_state_creation_destruction_case(true);
   return 0;
 }
 #else
 TEST_LIST = {
     {"create destroy", test_state_creation_destruction},
-    {"conditional ops", test_conditional_bit_flip},
-    {"virtual operations no effect", test_virtual_operations_no_effect},
+//    {"conditional ops", test_conditional_bit_flip},
+//    {"virtual operations no effect", test_virtual_operations_no_effect},
     {nullptr, nullptr} // Required final element
 };
 #endif
