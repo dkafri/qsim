@@ -1,0 +1,28 @@
+Plan for adding gate fusion in qsim backend.
+
+See CalculateFusedMatrix in fuser.h. We can make wrapper objects that are
+compatible with this operation. Note that we will require the qubit order
+to always be increasing (in qubits).
+We will need to separate the permutation and application components of
+permute_and_apply, so that fusion can be implemented properly.
+
+For simplicity, we don't fuse operations that add, remove, or swap axes. Maybe
+we can include that later.
+
+Instead of doing sample_kop in sampling.h, we will need to implement logic
+to presample without having to do any matrix algebra. This uses the
+minimum probability of the first Kraus operator.
+
+When doing sampling, we first determine whether we can pre-sample. If we can,
+we add the sample operator to queue of matrices (FusedGates) to apply. We will
+sample classical operations as before. We will also record any pre-sampled
+matrices that are marked to be recorded.
+
+We can do pre-sampling if the following is true:
+- the current (Kraus) operator minimum probability is less than the cutoff.
+- The current (Kraus) operator does not add, remove, or swap axes.
+
+When we get to an operator that cannot be pre-sampled, we apply all the
+previously pre-sampled operators to the state vector and normalize it. Then
+we proceed to do the standard sampling operation (exactly as in sample_kop),
+though we will need ot be careful about updating recorded registers twice.
