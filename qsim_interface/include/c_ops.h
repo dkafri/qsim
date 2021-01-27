@@ -90,6 +90,7 @@ struct COperator {
     assert(data.count(input_vec));
 
 #endif
+    // Update register values
     const std::vector<size_t>& output_vec = data.at(input_vec);
     auto val_ptr = output_vec.begin();
     for (auto reg_ptr = outputs.begin(); reg_ptr != outputs.end();
@@ -206,7 +207,7 @@ struct COperation {
         added(std::move(added)), is_virtual(is_virtual) { validate(); }
 
   /** Generic constructor */
-  COperation(ChannelMap && cmap,
+  COperation(ChannelMap&& cmap,
              std::vector<std::string> conditional_registers,
              std::set<std::string> added,
              bool is_virtual = false)
@@ -236,9 +237,11 @@ struct COperation {
     // Apply appropriate channel
     assert(channels.count(cond_vec));
     const auto& channel = channels.at(cond_vec);
-#ifdef NDEBUG
+#ifndef NDEBUG
     for (const auto & reg : added){
-      assert(registers.count(reg));
+      ASSERT(!registers.count(reg),
+          "ClassicalOperation attempted to add a register ("
+          << reg << ") which already exists.");
     }
 #endif
     channel.apply(registers, cutoff);
