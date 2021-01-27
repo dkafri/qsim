@@ -1,3 +1,5 @@
+from itertools import product
+
 import numpy as np
 import pytest
 import qsim_kraus_sim as pbi
@@ -302,3 +304,107 @@ def test_add_virtual_register_twice_throws_error():
 
   with pytest.raises(RuntimeError):
     reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(1)
+
+
+def test_leaky_cz_rpa_example():
+  sampler_cpp = pbi.Sampler(1, False)
+
+  # Leaky CZ where 11 state is always incoherently mapped to and from 02.
+  q0 = 'a'
+  q1 = 'b'
+  leaky_cz_channels = {
+      (0, 0): [([1., 0., 0., 0.,
+                 0., 1., 0., 0.,
+                 0., 0., 1., 0.,
+                 0., 0., 0., 0.],
+                [],
+                [q0, q1],
+                [],
+                [],
+                []),
+               ([0., 0., 0., np.sqrt(1 / 2),
+                 0., 0., 0., 0.,
+                 0., 0., 0., 0.,
+                 0., 0., 0., 0.],
+                [],
+                [q0, q1],
+                [],
+                [],
+                [q1]),
+               ([0., 0., 0., 0. - np.sqrt(1 / 2) * 1j,
+                 0., 0., 0., 0.,
+                 0., 0., 0., 0.,
+                 0., 0., 0., 0.],
+                [],
+                [q0, q1],
+                [],
+                [],
+                [q1])],
+      (0, 1): [([0., 0.,
+                 0., 1.],
+                [],
+                [q0],
+                [],
+                [],
+                []),
+               ([0., 0., 0., 0.,
+                 0., 0., 0., 0.,
+                 0., 0., 0., 0.,
+                 np.sqrt(1 / 2), 0., 0., 0.],
+                [q1],
+                [q0, q1],
+                [],
+                [],
+                []),
+               ([0., 0., 0., 0.,
+                 0., 0., 0., 0.,
+                 0., 0., 0., 0.,
+                 np.sqrt(1 / 2) * 1j, 0., 0., 0.],
+                [q1],
+                [q0, q1],
+                [],
+                [],
+                [])],
+      (1, 0): [([1., 0.,
+                 0., 1.],
+                [],
+                [q1],
+                [],
+                [],
+                [])],
+      (1, 1): [([1.], [], [], [], [], [])]}
+  a_leaked = 'a leaked'
+  b_leaked = 'b leaked'
+  leaky_cz_args = (
+      leaky_cz_channels, (a_leaked, b_leaked), True, 'leaky CZ', False)
+
+  table = np.zeros((2, 2, 3, 2), int)
+  table[0, 0, 1:] = (0, 1)  # cc -> cl
+  table[0, 1, 0] = (0, 1)  # cl ->cl
+  table[1, 0, 0] = (1, 0)  # lc ->lc
+  table[1, 1, 0] = (1, 1)  # lc ->ll
+  update_map = {(): ([({s: tuple(table[s]) for s in
+                        product(range(2), range(2), range(3))},
+                       (a_leaked, b_leaked, 'leaky CZ'),
+                       (a_leaked, b_leaked))],
+                     np.array([1.]))}
+  update_args = (update_map, (), set(), False)
+
+  sampler_cpp.add_koperation(*leaky_cz_args)
+  sampler_cpp.add_coperation(*update_args)
+  sampler_cpp.add_koperation(*leaky_cz_args)
+  sampler_cpp.add_coperation(*update_args)
+  sampler_cpp.add_koperation(*leaky_cz_args)
+  sampler_cpp.add_coperation(*update_args)
+
+  sampler_cpp.bind_initial_state([0., 0., 0., 1.],
+                                 (q0, q1))
+  init_reg = {a_leaked: 0, b_leaked: 0}
+  sampler_cpp.set_initial_registers(init_reg)
+  sampler_cpp.set_random_seed(13)
+  sampler_cpp.set_register_order((a_leaked, b_leaked))
+
+  reg_mat, out_arrays, axis_orders = sampler_cpp.sample_states(10)
+  expected = np.zeros_like(reg_mat)
+  expected[:, 1] = 1
+  np.testing.assert_array_equal(reg_mat, expected)

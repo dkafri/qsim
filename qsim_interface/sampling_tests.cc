@@ -225,8 +225,8 @@ int main() {
 #else
 TEST_LIST = {
     {"create destroy", test_state_creation_destruction},
-//    {"conditional ops", test_conditional_bit_flip},
-//    {"virtual operations no effect", test_virtual_operations_no_effect},
+    {"conditional ops", test_conditional_bit_flip},
+    {"virtual operations no effect", test_virtual_operations_no_effect},
     {nullptr, nullptr} // Required final element
 };
 #endif

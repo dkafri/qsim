@@ -14,7 +14,7 @@ to presample without having to do any matrix algebra. This uses the
 minimum probability of the first Kraus operator.
 
 When doing sampling, we first determine whether we can pre-sample. If we can,
-we add the sample operator to queue of matrices (FusedGates) to apply. We will
+we add the sampled operator to queue of matrices (FusedGates) to apply. We will
 sample classical operations as before. We will also record any pre-sampled
 matrices that are marked to be recorded.
 

@@ -29,7 +29,7 @@ using fp_type = Simulator::fp_type;
 using Matrix= qsim::Matrix<Simulator::fp_type>;
 
 void test_kstate_space_rescale_norm() {
-  vector<string> axis_labels = {"a", "b"};
+  auto axis_labels = vector<string>{"a", "b"};
   KState<Simulator> k_state(3, 4, axis_labels);
 
   TEST_CHECK(almost_equals(k_state.norm_squared(), 1.0));
@@ -44,11 +44,6 @@ void test_kstate_add_remove_qubits_size_grows() {
 
   unsigned expected = 0;
   auto state = k_state.active_state();
-  TEST_CHECK(equals(expected, state.num_qubits()));
-
-  k_state.add_qubit("a");
-  expected += 1;
-  state = k_state.active_state();
   TEST_CHECK(equals(expected, state.num_qubits()));
 
   k_state.add_qubit("a");
@@ -71,26 +66,20 @@ void test_kstate_add_remove_qubits_size_grows() {
   state = k_state.active_state();
   TEST_CHECK(equals(expected, state.num_qubits()));
 
-  k_state.remove_qubits_of({"a"});
+  k_state.remove_qubits_of({"a", "c"});
   expected -= 2;
-  state = k_state.active_state();
-  TEST_CHECK(equals(expected, state.num_qubits()));
-
-  k_state.remove_qubits_of({"c"});
-  expected -= 1;
   state = k_state.active_state();
   TEST_CHECK(equals(expected, state.num_qubits()));
 
 }
 
 void test_kstate_correct_qubit_removed() {
-  KState<Simulator> k_state(3, 5, vector<string>{"c", "b", "b"});
+  KState<Simulator> k_state(3, 5, vector<string>{"c", "b", "a"});
   using StateSpace = KState<Simulator>::StateSpace;
   using fp_type = Simulator::fp_type;
 
-  auto b_qubits = k_state.qubits_of("b");
-  TEST_CHECK(equals(b_qubits, vector<unsigned>{1, 2}));
-
+  TEST_CHECK(k_state.qubit_of("b") == 1);
+  TEST_CHECK(k_state.qubit_of("a") == 2);
 
   // Last added qubit is slowest to change when running through states.
   // Prepare state |100> by applying X to qubit 2
@@ -98,9 +87,9 @@ void test_kstate_correct_qubit_removed() {
   auto state = k_state.active_state();
 
   qsim::Matrix<fp_type> X{0, 0, 1, 0, 1, 0, 0, 0};
-  // b has 2 qubits, (1, and 2). The matrix is applied in reverse order with
+  // a has qubit 2. The matrix is applied in reverse order with
   // respect to most recently assigned qubits.
-  vector<string> axes{"b"};
+  vector<string> axes{"a"};
   k_state.permute_and_apply(X, axes);
   auto actual = StateSpace::GetAmpl(state, 4);
   TEST_CHECK(equals(actual, complex<fp_type>{1}));
@@ -119,7 +108,6 @@ void test_kstate_copy_constructor() {
   KState<Simulator> k_state(3, 5, vector<string>{});
 
   k_state.add_qubit("a");
-  k_state.add_qubit("a");
   k_state.add_qubit("b");
   k_state.add_qubit("c");
 
@@ -129,7 +117,7 @@ void test_kstate_copy_constructor() {
   KState<Simulator> copy(k_state);
 
   auto state_copy = copy.active_state();
-  for (size_t i = 0; i < 16; i++) {
+  for (size_t i = 0; i < 8; i++) {
     auto actual = KState<Simulator>::StateSpace::GetAmpl(state_copy, i);
     auto expected = KState<Simulator>::StateSpace::GetAmpl(state, i);
     TEST_CHECK(actual == expected);
@@ -139,12 +127,11 @@ void test_kstate_copy_constructor() {
 
 void test_remove_qubits_of() {
 
-  KState<Simulator> k_state(3, 5, vector<string>{"c", "a", "b", "a", "b"});
+  KState<Simulator> k_state(3, 5, vector<string>{"c", "a", "b"});
 
   k_state.remove_qubits_of({"a", "b", "c"});
 
-  for (const auto& ax : {"a", "b", "c"})
-    TEST_CHECK(k_state.qubits_of(ax).empty());
+  TEST_CHECK(k_state.active_state().num_qubits() == 0);
 
 }
 
@@ -194,7 +181,6 @@ void test_kstate_copy_from() {
   KState<Simulator> k_state(3, 5, vector<string>{});
 
   k_state.add_qubit("a");
-  k_state.add_qubit("a");
   k_state.add_qubit("b");
   k_state.add_qubit("c");
 
@@ -205,7 +191,7 @@ void test_kstate_copy_from() {
   copy.copy_from(k_state);
 
   auto state_copy = copy.active_state();
-  for (size_t i = 0; i < 16; i++) {
+  for (size_t i = 0; i < 8; i++) {
     auto actual = KState<Simulator>::StateSpace::GetAmpl(state_copy, i);
     auto expected = KState<Simulator>::StateSpace::GetAmpl(state, i);
     TEST_CHECK(actual == expected);
@@ -225,23 +211,20 @@ void test_kstate_apply_1q_gate() {
   Matrix X_mat{0, 0, 1, 0, 1, 0, 0, 0};
   vector<string> axes{"a"};
   k_state.permute_and_apply(X_mat, axes);
-  vector<unsigned> expected{0};
-  TEST_CHECK(equals(k_state.qubits_of("a"), expected));
+  TEST_CHECK(equals(k_state.qubit_of("a"), 0));
 
   //first qubit index changes fastest, in state |0,0,1>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 1), Complex{1}));
 
   axes = {"b"};
   k_state.permute_and_apply(X_mat, axes);
-  expected[0] = 1;
-  TEST_CHECK(equals(k_state.qubits_of("b"), expected));
+  TEST_CHECK(equals(k_state.qubit_of("b"), 1));
   //State |011>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 3), Complex{1}));
 
   axes = {"c"};
   k_state.permute_and_apply(X_mat, axes);
-  expected[0] = 2;
-  TEST_CHECK(equals(k_state.qubits_of("c"), expected));
+  TEST_CHECK(equals(k_state.qubit_of("c"), 2));
   //State |111>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 7), Complex{1}));
 
@@ -261,8 +244,7 @@ void test_kstate_apply_2q_gate() {
   Matrix X_mat{0, 0, 1, 0, 1, 0, 0, 0};
   vector<string> axes{"a"};
   k_state.permute_and_apply(X_mat, axes);
-  vector<unsigned> expected{0};
-  TEST_CHECK(equals(k_state.qubits_of("a"), expected));
+  TEST_CHECK(equals(k_state.qubit_of("a"), 0));
 
   //first qubit index changes fastest, in state |0,0,1>
   TEST_CHECK(equals(StateSpace::GetAmpl(state, 1), one));
@@ -301,30 +283,30 @@ void test_kstate_apply_2q_gate() {
 }
 
 void test_kstate_transfer_qubits() {
-  KState<Simulator> k_state(3, 5, vector<string>{"a", "a"});
+  KState<Simulator> k_state(3, 5, vector<string>{"a"});
 
-  auto a_qubits = k_state.qubits_of("a");
-  k_state.transfer_qubits("a", "b");
-  auto b_qubits = k_state.qubits_of("b");
-  TEST_CHECK(equals(a_qubits, b_qubits));
+  unsigned a_qubit = k_state.qubit_of("a");
+  k_state.transfer_qubit("a", "b");
+  unsigned b_qubit = k_state.qubit_of("b");
+  TEST_CHECK(a_qubit == b_qubit);
 
 }
 
 void test_sort_axes_axis_order() {
 
   auto unique_axes = vector<string>{"a", "b", "c"};
-  auto qubit_axis = vector<string>{"c", "a", "b", "a", "b"};
+  auto qubit_axis = vector<string>{"c", "a", "b"};
   KState<Simulator> k_state(4, 5, qubit_axis);
 
-  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{1, 3}));
-  TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 4}));
-  TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{0}));
+  TEST_CHECK(k_state.qubit_of("a") == 1);
+  TEST_CHECK(k_state.qubit_of("b") == 2);
+  TEST_CHECK(k_state.qubit_of("c") == 0);
 
   k_state.order_axes({"a", "b", "c"});
 
-  TEST_CHECK(equals(k_state.qubits_of("a"), vector<unsigned>{0, 1}));
-  TEST_CHECK(equals(k_state.qubits_of("b"), vector<unsigned>{2, 3}));
-  TEST_CHECK(equals(k_state.qubits_of("c"), vector<unsigned>{4}));
+  TEST_CHECK(k_state.qubit_of("a") == 0);
+  TEST_CHECK(k_state.qubit_of("b") == 1);
+  TEST_CHECK(k_state.qubit_of("c") == 2);
 }
 
 inline size_t get_bit(size_t num, size_t which_bit) {
@@ -378,22 +360,23 @@ void test_sort_axes_correct_state() {
 
 void test_f_align_reverse_c_align() {
 
-  KState<Simulator> k_state(4, 5, vector<string>{"d", "d", "a", "b", "c"});
+  KState<Simulator> k_state(4, 5, vector<string>{"d", "a", "b", "c"});
 
-  //X on "b", CNOT from b to a
+  //X on "a"
   Matrix X{0, 0, 1, 0,
            1, 0, 0, 0};
   vector<string> axes{"a"};
   k_state.permute_and_apply(X, axes);
 
-  k_state.order_axes({"d", "c", "b", "a"});
+  k_state.order_axes({"d", "c", "b", "a"}); // a at the end now
   auto state = k_state.active_state();
-  //|10000> -> 16
-  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 16) == Complex{1});
+  //|1000> -> 8
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 8) == Complex{1});
 
   //reorder axes arbitrarily
   k_state.order_axes({"b", "a", "d", "c"});
 
+  //CNOT from a to b
   Matrix CNOT{1, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 1, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 1, 0,
@@ -403,8 +386,8 @@ void test_f_align_reverse_c_align() {
 
   // bring them back to reverse alphabetical order
   k_state.order_axes({"d", "c", "b", "a"});
-  //|11000> -> 16+8=24
-  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 24) == Complex{1});
+  //|1100> -> 4+8=12
+  TEST_CHECK(Simulator::StateSpace::GetAmpl(state, 12) == Complex{1});
 
 }
 
@@ -419,7 +402,7 @@ void test_pointer_constructor() {
   for (size_t ii = 0; ii < size / 2; ii++) {
     data[ii] = fp_type(2 * ii);
     data[ii + size / 2] = fp_type(2 * ii + 1);
-  }
+  } //represents (0+1j, 2+3j, 4+5j...)
 
   for (;;) {
     KState<Simulator>
