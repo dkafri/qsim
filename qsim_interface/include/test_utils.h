@@ -8,18 +8,20 @@
 #define PROTOTYPE_INCLUDE_TEST_UTILS_H_
 
 #ifndef NDEBUG
+#include <sstream>
+
 #   define ASSERT(condition, message) \
     do { \
         if (! (condition)) { \
-            std::cerr << "Assertion `" #condition "` failed in " << __FILE__ \
-                      << " line " << __LINE__ << ": " << message << std::endl; \
-            throw std::runtime_error("Assertion failed (see top error)."); \
+            std::stringstream ss; \
+            ss << "Assertion `" #condition "` failed in " << __FILE__ \
+               << " line " << __LINE__ << ": " << message << std::endl; \
+            throw std::runtime_error(ss.str()); \
         } \
     } while (false)
 #else
 #   define ASSERT(condition, message) do { } while (false)
 #endif
-
 
 template<typename T, typename V>
 bool almost_equals(const T& actual, const V& expected, float delta = 1e-6) {
