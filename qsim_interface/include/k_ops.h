@@ -19,7 +19,7 @@
  * Non-square Kraus operators can be represented by padding either their rows
  * or columns with zeros. (their original shapes must be powers of 2.) The row
  * and column indices can be viewed as multi-indices running over multiple
- * qubits. I.e. the row index of a 4x4 matrix is actual a multi-index running
+ * qubits. I.e. the row index of a 4x4 matrix is actually a multi-index running
  * over 2 qubits. Importantly, the qubit order of the row multi-index is assumed
  * to be the same as that for the column multi-index.
  *
@@ -33,10 +33,7 @@
  * are at the end.
  *
  * If we have to apply a matrix whose axis qubit order does not match the
- * existing state qubit order, we need to first permute it. But then we can
- * just permute it back in order to maintain correct axis order. For the moment
- * this only applies to 4x4 matrices since qsim only handles at most 2-qubit
- * gates.
+ * existing state qubit order, we need to first permute it.
  * */
 template<typename fp_type>
 struct KOperator {

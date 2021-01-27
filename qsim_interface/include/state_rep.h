@@ -50,22 +50,19 @@ class KState {
   using fp_type = typename Simulator::fp_type;
 
   std::vector<std::string>
-      qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubits.*/
+      qubit_axis; /** Axis assigned to each qubit. Inverse of axis_qubit.*/
 
   // Methods
   KState() = delete;
 
-  template<typename StringIterable>
   KState(unsigned num_threads,
          unsigned max_qubits,
-         const StringIterable axis_labels
+         const std::vector<std::string>& axis_labels
   )
       : state_vec(StateSpace(num_threads).Create(max_qubits)),
         num_threads(num_threads), max_qubits_(max_qubits),
         own_memory(true) {
-
-    // Assign qubits to axis labels. Assume all axes are initially allocated one
-    // qubit.
+    // Assign qubits to axis labels.
     for (auto axis_ptr = axis_labels.begin(); axis_ptr != axis_labels.end();
          ++axis_ptr) {
       add_qubit(*axis_ptr);
@@ -101,18 +98,12 @@ class KState {
 
   /** Copy constructor*/
   KState(const KState& k_state) :
+      qubit_axis(k_state.qubit_axis),
       state_vec(StateSpace(k_state.num_threads).Create(k_state.max_qubits_)),
       num_threads(k_state.num_threads),
       max_qubits_(k_state.max_qubits_),
-      own_memory(true) {
-
-    //copy axis_qubits and qubit_axis
-    for (const auto& axis : k_state.qubit_axis) {
-      qubit_axis.push_back(axis);
-    }
-    for (const auto& key_value : k_state.axis_qubits) {
-      axis_qubits[key_value.first] = key_value.second;
-    }
+      own_memory(true),
+      axis_qubit(k_state.axis_qubit) {
 
     StateSpace(num_threads).Copy(k_state.state_vec, state_vec);
   }
@@ -123,7 +114,7 @@ class KState {
       num_threads = other.num_threads;
       max_qubits_ = other.max_qubits_;
       state_vec = std::move(other.state_vec);
-      axis_qubits = std::move(other.axis_qubits);
+      axis_qubit = std::move(other.axis_qubit);
       qubit_axis = std::move(other.qubit_axis);
       own_memory = other.own_memory;
     }
@@ -133,8 +124,8 @@ class KState {
   /** Move constructor*/
   KState(KState&& k_state) noexcept
       : //We need to initialize state_vec because State has no trivial
-        // constructor.
-        state_vec(StateSpace::Null()) {
+  // constructor.
+      state_vec(StateSpace::Null()) {
     *this = std::move(k_state);
   }
 
@@ -155,8 +146,8 @@ class KState {
       active_state_space().SetAllZeros(my_state);
     }
 
-    //copy axis_qubits and qubit_axis
-    axis_qubits = source.axis_qubits;
+    //copy axis_qubit and qubit_axis
+    axis_qubit = source.axis_qubit;
     qubit_axis = source.qubit_axis;
     assert(num_active_qubits() == source.num_active_qubits());
 
@@ -167,7 +158,10 @@ class KState {
   }
 
   /** Current maximum state vector size, in terms of stored qubits.*/
-  size_t max_qubits() { return max_qubits_; }
+  size_t max_qubits() const { return max_qubits_; }
+
+  /**Number of qubits currently in memory.*/
+  inline unsigned num_active_qubits() const { return qubit_axis.size(); }
 
   /* State with current vector size.*/
   State active_state() {
@@ -188,8 +182,6 @@ class KState {
    *
    * */
   void order_axes(const std::vector<std::string>& ax_order) {
-    //TODO: Proper testing of this method when axes are assigned more than 1
-    // qubit.
 
     std::unordered_map<std::string, unsigned> axis_index;
     for (size_t ii = 0; ii < ax_order.size(); ii++)
@@ -204,17 +196,7 @@ class KState {
 
     std::sort(sorted_axis_qubits.begin(), sorted_axis_qubits.end(),
               [this, &axis_index](const AxisQubit& a, const AxisQubit& b) {
-                if (a.first != b.first)
-                  return axis_index.at(a.first) < axis_index.at(b.first);
-                //qubits belong to same axis. Match order them by appearance
-                // in axis_qubits
-                for (const auto& q : axis_qubits.at(a.first)) {
-                  if (q == a.second)
-                    return true;
-                  if (q == b.second)
-                    return false;
-                }
-                return false;
+                return axis_index.at(a.first) < axis_index.at(b.first);
               });
 
     //Permutation required to sort qubit_axis
@@ -227,26 +209,27 @@ class KState {
     auto effect = [this](unsigned q0, unsigned q1) { swap_qubits(q0, q1); };
     apply_permutation(qubit_axis, permutation, effect);
 
-    //update axis_qubits
-    axis_qubits.clear();
+    //update axis_qubit
+    axis_qubit.clear();
     for (unsigned q = 0; q < qubit_axis.size(); q++)
-      axis_qubits[qubit_axis[q]].push_back(q);
+      axis_qubit[qubit_axis[q]] = q;
   }
 
   /** Allocate a qubit to an axis.
    *
-   * If the axis does not exist, it is created first. It is not guaranteed that
-   * the specified qubit is exactly the zero state (i.e. no entanglement).
    *
-   * @param axis: The axis to which to add the qubit to.
+   * @param axis: The axis to which to add the qubit to. The axis should not
+   *     previously have an allocated qubit.
    * */
   void add_qubit(const std::string& axis) {
+    ASSERT(!axis_qubit.count(axis), "Tried to add a qubit to axis "
+        << axis << " which is already allocated qubit " << axis_qubit.at(axis)
+        << ".");
     assert(num_active_qubits() <= max_qubits_);
-
     if (num_active_qubits() == max_qubits_) //memory reallocation required.
       increment_max_qubits(1);
 
-    axis_qubits[axis].push_back(num_active_qubits());
+    axis_qubit.emplace(axis, num_active_qubits());
     qubit_axis.push_back(axis);
   }
 
@@ -268,24 +251,10 @@ class KState {
     for (const auto& ax : axes) {
       if (seen.find(ax) != seen.end())
         continue; //Skip repeats
-      for (const auto& q : qubits_of(ax)) {
-        q_and_ax.push_back({q, ax});
-      }
+      q_and_ax.push_back({axis_qubit.at(ax), ax});
     }
 
     auto cmp = [this](const QubitAndAxis& a, const QubitAndAxis& b) {
-      if (a.second == b.second) {
-        // If both qubits belong to the same axis, they must be removed
-        // in the order in which they are added.
-        for (const auto& q : qubits_of(a.second)) {
-          //a qubit was added first, so it should be removed last
-          if (q == a.first)
-            return false;
-          //b qubit was added first, so a's qubit should be removed first
-          if (q == b.first)
-            return true;
-        }
-      }
       // Axis whose qubit is higher in the order should be removed first.
       return a.first > b.first;
     };
@@ -306,17 +275,19 @@ class KState {
    * @param dest: The axis receiving qubits. This axis must not have any
    *              allocated qubits.
    * */
-  void transfer_qubits(const std::string& src, const std::string& dest) {
+  void transfer_qubit(const std::string& src, const std::string& dest) {
 
-    assert(axis_qubits[dest].size() == 0);
+    assert(!axis_qubit.count(dest));
+    ASSERT(axis_qubit.count(src), "Tried to move a qubit from "
+        << src << ", but this axis is not allocated a qubit.");
 
     //reassign qubits from source to destination
-    axis_qubits[dest] = std::move(axis_qubits[src]);
-    axis_qubits[src].clear();
+    unsigned& qubit = axis_qubit[src];
+    axis_qubit.emplace(dest, qubit);
+    axis_qubit.erase(src);
 
     //Update qubit_axes
-    for (const auto& q:axis_qubits[dest])
-      qubit_axis[q] = dest;
+    qubit_axis[qubit] = dest;
   }
 
   /** Print amplitudes of all active qubits to cout.*/
@@ -332,24 +303,22 @@ class KState {
 
   }
 
-#ifdef DEBUG_SAMPLING
-  void print_qubit_axes() {
-    for (const auto& ax: qubit_axis)
-      std::cout << "(" << ax << "),";
-    std::cout << std::endl;
-  }
-#endif
-
   /** Rescale the state vector by a constant.*/
   void rescale(double scale) {
     auto state = active_state();
     active_state_space().Multiply(scale, state);
   }
 
-  /** All qubits allocated to a given axis.*/
-  std::vector<unsigned> qubits_of(const std::string& axis) {
-    const auto& qubits = axis_qubits[axis];
-    return std::vector<unsigned>(qubits.begin(), qubits.end());
+  /** Whether an axis has been allocated a qubit.*/
+  bool has_qubit(const std::string& axis) const {
+    return axis_qubit.count(axis);
+  }
+
+  /** The qubit allocated to a given axis.*/
+  unsigned qubit_of(const std::string& axis) const {
+    ASSERT(axis_qubit.count(axis), "Tried to axis qubit for ("
+        << axis << "), but none exists.\n");
+    return axis_qubit.at(axis);
   }
 
   /** Permute and apply a matrix to the specified axes.
@@ -375,7 +344,12 @@ class KState {
     }
 
     // Qubits for each axis, in reverse order to account for qsim representation
-    auto qubits = qubits_vec(axes, true);
+    std::vector<unsigned> qubits;
+    qubits.reserve(axes.size());
+    for (auto q_ptr = axes.rbegin(); q_ptr != axes.rend(); ++q_ptr) {
+      assert(axis_qubit.count(*q_ptr));
+      qubits.push_back(axis_qubit.at(*q_ptr));
+    }
 
     match_to_reverse_qubits(qubits, matrix, axes);
 
@@ -395,8 +369,8 @@ class KState {
   unsigned num_threads;
   unsigned max_qubits_;
   bool own_memory;
-  using AxisQubits = std::unordered_map<std::string, std::list<unsigned>>;
-  AxisQubits axis_qubits; /**Qubits allocated to each axis.*/
+  using AxisQubit = std::unordered_map<std::string, unsigned>;
+  AxisQubit axis_qubit; /**Qubits allocated to each axis.*/
 
 
   // Private methods
@@ -475,94 +449,33 @@ class KState {
   * */
   void remove_qubit(const std::string& axis) {
     assert(num_active_qubits() > 0);
-    assert(!axis_qubits[axis].empty());
+    ASSERT(axis_qubit.count(axis),
+           "Tried to remove qubit of axis " << axis << ", but no qubit is"
+                                                       " assigned to this axis.");
 
-    // Swap the last qubit of this axis with the last active qubit.
+    // Swap the qubit of this axis with the last active qubit.
     const unsigned last_active_q = num_active_qubits() - 1;
-    const unsigned removed_q = axis_qubits[axis].back();
+    const unsigned removed_q = axis_qubit.at(axis);
 
     if (last_active_q != removed_q) {
       swap_qubits(removed_q, last_active_q);
       // Update the axis qubit registry for the axis involved in the swap.
-      std::string axis_1 = qubit_axis[last_active_q];
+      std::string axis_last = qubit_axis[last_active_q];
+      assert(axis_qubit.count(axis_last));
       //q1 must be most recently added.
-      assert(axis_qubits[axis_1].back() == last_active_q);
-      axis_qubits[axis_1].pop_back();
-      axis_qubits[axis_1].push_back(removed_q);
-      qubit_axis[removed_q] = axis_1;
+      assert(axis_qubit.at(axis_last) == last_active_q);
+      axis_qubit.at(axis_last) = removed_q;
+      qubit_axis[removed_q] = axis_last;
     }
 
 
-    // Deallocate the removed qubit.
-    axis_qubits[axis].pop_back();
+    // Remove the axis.
+    axis_qubit.erase(axis);
     qubit_axis.pop_back();
 
   }
-  /** Qubits allocated to one or more axes, accounting for repeats
-   *
-   * Returns a vector of qubit indices with exactly the same length as the
-   * input. If an axis is allocated more than one qubit, it should be included
-   * in the input that many times.
-   *
-   * @param axes - Sequence of axis labels. May contain repeats.
-   * @param reverse - Whether the qubits should be returned in reverse order
-   *     (this reflects qsim's ordering).
-   *
-   * Example:
-   * Axis "a" is allocated qubits [2,0]
-   * and axis "b" is allocated qubits [1,3]
-   *
-   * Input ({"a","b","a"},reverse=false) returns [2,1,0]
-   * Input ({"a","b","a},reverse=true) returns [0,3,2]
-   * */
-  std::vector<unsigned> qubits_vec(const std::vector<std::string>& axes,
-                                   bool reverse = false) {
-    std::vector<unsigned> out{};
-    out.reserve(axes.size());
 
-    // Keep a dictionary of iterators (forward or reverse) for each axis.
-    // The iterators point to the next, yet to be added qubit of that axis.
-    if (reverse) {
-      using IterType=AxisQubits::mapped_type::const_reverse_iterator;
 
-      std::unordered_map<std::string, IterType> iters;
-      IterType iter;
-
-      for (auto axis_ptr = axes.rbegin(); axis_ptr != axes.rend(); ++axis_ptr) {
-        //get current qubit iterator for axis
-        if (iters.count(*axis_ptr)) iter = iters.at(*axis_ptr);
-        else iter = axis_qubits[*axis_ptr].rbegin();
-
-        ASSERT(iter != axis_qubits[*axis_ptr].rend(),
-               "Tried to access a qubit for axis " << *axis_ptr <<
-               " but none exists.");
-        out.push_back(*iter);
-        iters[*axis_ptr] = ++iter;
-      }
-
-    } else {
-      using IterType=AxisQubits::mapped_type::const_iterator;
-
-      std::unordered_map<std::string, IterType> iters;
-      IterType iter;
-
-      for (const auto& axis : axes) {
-        //get current qubit iterator for axis
-        if (iters.count(axis)) iter = iters.at(axis);
-        else iter = axis_qubits[axis].cbegin();
-
-        assert(iter != axis_qubits[axis].cend());
-        out.push_back(*iter);
-        iters[axis] = ++iter;
-      }
-
-    }
-
-    return out;
-  }
-
-  /**Number of qubits currently in memory.*/
-  inline unsigned num_active_qubits() const { return qubit_axis.size(); }
 
 };
 

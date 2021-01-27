@@ -52,12 +52,10 @@ static inline void sample_kop(KOperation<fp_type>& op,
     //Add required qubits to axes
     for (const auto& ax: k_op.added_axes) {
       k_state.add_qubit(ax);
-      tmp_state.add_qubit(ax);
     }
 
     //Permute and apply matrix
     k_state.permute_and_apply(k_op.matrix, k_op.qubit_axes);
-
 
     if (channel.size() > 1) // norm must be 1 if only one operator present.
       norm2 = k_state.norm_squared();
@@ -69,7 +67,7 @@ static inline void sample_kop(KOperation<fp_type>& op,
 
       // Apply swaps
       for (std::size_t ii = 0; ii < k_op.swap_sources.size(); ii++) {
-        k_state.transfer_qubits(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
+        k_state.transfer_qubit(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
       }
       // Remove axes
       k_state.remove_qubits_of(k_op.removed_axes);
@@ -79,13 +77,8 @@ static inline void sample_kop(KOperation<fp_type>& op,
 
       break;
     }
-    // Operator not sampled -> backtrack. Copy original vector before
-    // removing qubits. We need to do this because the removed qubits must be
-    // in the zero state before they are removed.
+    // Operator not sampled -> backtrack.
     k_state.copy_from(tmp_state);
-    // Qubit removal is free because the added qubits are in the end.
-    k_state.remove_qubits_of(k_op.added_axes);
-    tmp_state.remove_qubits_of(k_op.added_axes);
     k_ind++;
 
     // Rarely floating point errors prevent the total Kraus operator
