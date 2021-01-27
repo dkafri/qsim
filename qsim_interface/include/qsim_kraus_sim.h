@@ -160,7 +160,7 @@ class Sampler {
       KChannel<fp_type> channel_vec;
       channel_vec.reserve(channel_data.size());
       for (auto& k_op_data : channel_data)
-        channel_vec.push_back(build_koperator(k_op_data));
+        channel_vec.push_back(std::move(build_koperator(k_op_data)));
 
       // Assign the KChannel to the register
       auto& reg_vals = regs_channels.first;
@@ -252,6 +252,7 @@ class Sampler {
     for (size_t ii = 0; ii < num_samples; ii++) {
 
       k_state.copy_from(init_kstate);
+      tmp_state.copy_from(init_kstate);
       final_registers = sample_sequence(ops,
                                         k_state,
                                         tmp_state,
