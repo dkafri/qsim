@@ -26,3 +26,13 @@ When we get to an operator that cannot be pre-sampled, we apply all the
 previously pre-sampled operators to the state vector and normalize it. Then
 we proceed to do the standard sampling operation (exactly as in sample_kop),
 though we will need ot be careful about updating recorded registers twice.
+
+Look into MultiQubitGateFuser in fuser_mqubit to see how to do smart fusion.
+
+
+Thoughts on other changes:
+We should keep track of all norms and apply the most likely Kraus operator if
+a roundoff error has occurred, not just apply the last Kraus operator.
+
+Only allocate the temporary state if we are going to sample, do the work on that
+then do a swap?

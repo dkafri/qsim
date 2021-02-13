@@ -96,7 +96,8 @@ static inline void sample_kop(KOperation<fp_type>& op,
                << ".\n");
 
   }
-  // TODO: Fix this if qsim norm is revised.
+  // TODO: Fix this if qsim norm is revised. More realistically we should sample
+  // the Kraus operator that had the largest norm.
   k_ind = (k_ind == channel.size()) ? k_ind - 1 : k_ind;
 
   if (op.is_recorded) registers[op.label] = k_ind;
