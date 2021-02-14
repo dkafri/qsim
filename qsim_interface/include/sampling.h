@@ -16,10 +16,13 @@ using RegisterMap=std::unordered_map<std::string, size_t>;
 
 /** \brief Sample a KOperation on a state.
  *
+ * This function samples the Kraus operator from the KOperation, applies it
+ * to the k_state, and records the operator index in registers if op.is_recorded
+ * is true.
+ *
  * @param op: The KOperation to sample from.
  * @param kstate: The current system state.
- * @param tmp_state: Working memory. Must have the same max_qubit size as
- *     kstate.
+ * @param tmp_state: Working memory.
  * @param registers: Current classical register table.
  * @param cutoff: Random number between 0 and 1 used for sampling.
  * */
@@ -33,12 +36,23 @@ static inline void sample_kop(KOperation<fp_type>& op,
   //Extract conditional channel given current registers
   auto channel = op.channel_at(registers);
 
+  //Handle trivial case (empty channel, outcome recorded as zero.)
+  if (!channel.size()) {
+    if (op.is_recorded) registers[op.label] = 0;
+    return;
+  }
 
 
   //Only need to record a copy if more than one operator may be sampled.
   if (channel.size() > 1)
     tmp_state.copy_from(k_state);
   unsigned k_ind = 0;
+  // to keep track of maximum norm seen, for backtracking due to roundoff
+  // errors.
+  unsigned most_likely_k_ind = 0;
+  double max_prob = 0.0;
+  bool op_sampled = false;
+
   double norm2 = 1.0;
 
 #ifndef NDEBUG
@@ -47,8 +61,10 @@ static inline void sample_kop(KOperation<fp_type>& op,
   double original_norm2 = k_state.norm_squared();
 #endif
 
-  //Sample operators
-  for (auto& k_op : channel) {
+  // Sample operators by applying them and checking norm. We defer qubit
+  // swaps and removals to the end.
+  for (k_ind = 0; k_ind < channel.size(); ++k_ind) {
+    auto& k_op = channel[k_ind];
     //Add required qubits to axes
     for (const auto& ax: k_op.added_axes) {
       k_state.add_qubit(ax);
@@ -59,27 +75,24 @@ static inline void sample_kop(KOperation<fp_type>& op,
 
     if (channel.size() > 1) // norm must be 1 if only one operator present.
       norm2 = k_state.norm_squared();
+
+    // keep track of which operator had the most probability, in case we
+    // have a roundoff error and need to apply it at the end.
+    if (norm2 > max_prob) {
+      max_prob = norm2;
+      most_likely_k_ind = k_ind;
+    }
 #ifndef NDEBUG
     norm2_tot += norm2;
 #endif
+
     cutoff -= norm2;
     if (cutoff < 0) { // operator sampled
-
-      // Apply swaps
-      for (std::size_t ii = 0; ii < k_op.swap_sources.size(); ii++) {
-        k_state.transfer_qubit(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
-      }
-      // Remove axes
-      k_state.remove_qubits_of(k_op.removed_axes);
-      //Normalize if needed
-      if (channel.size() > 1)
-        k_state.rescale(1 / sqrt(norm2));
-
+      op_sampled = true;
       break;
     }
     // Operator not sampled -> backtrack.
     k_state.copy_from(tmp_state);
-    k_ind++;
 
     // Rarely floating point errors prevent the total Kraus operator
     // probabilities from summing to one. We correct this case below, but want
@@ -96,9 +109,32 @@ static inline void sample_kop(KOperation<fp_type>& op,
                << ".\n");
 
   }
-  // TODO: Fix this if qsim norm is revised. More realistically we should sample
-  // the Kraus operator that had the largest norm.
-  k_ind = (k_ind == channel.size()) ? k_ind - 1 : k_ind;
+
+  if (!op_sampled) {
+    // no operator was sampled, likey due to roundoff error. So we apply the
+    // most likely operator instead.
+    k_ind = most_likely_k_ind;
+    auto& k_op = channel[k_ind];
+    //Add required qubits to axes
+    for (const auto& ax: k_op.added_axes) {
+      k_state.add_qubit(ax);
+    }
+
+    //Permute and apply matrix
+    k_state.permute_and_apply(k_op.matrix, k_op.qubit_axes);
+  }
+
+  //Final steps of sampling:
+  const auto& k_op = channel[k_ind];
+  // Apply swaps
+  for (std::size_t ii = 0; ii < k_op.swap_sources.size(); ii++) {
+    k_state.transfer_qubit(k_op.swap_sources[ii], k_op.swap_sinks[ii]);
+  }
+  // Remove axes
+  k_state.remove_qubits_of(k_op.removed_axes);
+  //Normalize if needed
+  if (channel.size() > 1)
+    k_state.rescale(1 / sqrt(norm2));
 
   if (op.is_recorded) registers[op.label] = k_ind;
 
