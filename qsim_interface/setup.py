@@ -3,6 +3,10 @@
 Standard usage:
 python setup.py install
 
+Note: If you are installing from source, you must also pull the pybind
+submodule before running setup.py. Within the qsim_interface directory, do:
+git submodule update --init --recursive
+
 To build a "debug" version, do
 python setup.py --debug install
 this will compile the C++ code with assertions on, which will hurt performance
