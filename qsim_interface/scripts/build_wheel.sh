@@ -2,9 +2,16 @@
 
 # This script constructs the .whl files required to pip install the
 # qsim_kraus_sim package. It should be run within the interface branch.
+# In order to compile for a specific python version, make sure to start within
+# a virtual environment matching that version. If you get compilation issues,
+# try "sudo apt-get install python3.X-dev", where 3.X is your python version.
+#
 #
 # This library is currently housed in a separate github repo for export control
 # reasons. If you would like access to it, please message dkafri@.
+
+echo "Creating wheel file for python version"
+python3 -V
 
 root=$(git rev-parse --show-toplevel)
 files_dir=${root}/qsim_interface/scripts/wheels
