@@ -9,9 +9,10 @@
 __pycache__
 .ipynb_checkpoints
 
-# Build
-/build
+# Build and dist
+/build/*
 *.egg-info
+/dist/*
 
 # Bazel output
 bazel-*

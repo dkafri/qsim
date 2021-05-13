@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.11)
 project(qsim)
 
+
 # To do a "debug" compilation, add the following flag to cmake:
 # -DCMAKE_BUILD_TYPE=Debug
 # This generates some tests and uses the ggdb3 compilation flag for easier
 # memory leak tracking with valgrind. It will also considerably slow down the
 # compilation.
+
+# required to ensure correct python version is used
+find_package(Python COMPONENTS Interpreter Development)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
