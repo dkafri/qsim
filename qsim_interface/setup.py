@@ -19,12 +19,13 @@ import re
 import sys
 import platform
 import subprocess
+from datetime import datetime
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
-from _version import __version__
+__version__ = str(datetime.now().strftime('%y.%m.%d.%H.%M'))
 
 description = 'qsim backend interface for kraus_sim simulator'
 
@@ -46,7 +47,7 @@ DEBUG = False
 if "--debug" in sys.argv:
   DEBUG = True
   sys.argv.remove("--debug")
-  __version__ += '-debug'
+  __version__ += '.debug'
 
 
 class CMakeBuild(build_ext):

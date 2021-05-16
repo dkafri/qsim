@@ -35,7 +35,7 @@ endif ()
 #set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DDEBUG_SAMPLING")
 
 
-find_package(PythonInterp REQUIRED)
+#find_package(PythonInterp REQUIRED)
 message(STATUS "${PYTHON_EXECUTABLE}")
 message(STATUS "compiler flags ${CMAKE_CXX_FLAGS}")
 message(STATUS "C++ compiler : ${CMAKE_CXX_COMPILER}")
