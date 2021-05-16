@@ -36,7 +36,7 @@ endif ()
 #set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DDEBUG_SAMPLING")
 
 
-message(STATUS "${PYTHON_EXECUTABLE}")
+message(STATUS "python executable is :${PYTHON_EXECUTABLE}")
 message(STATUS "compiler flags ${CMAKE_CXX_FLAGS}")
 message(STATUS "C++ compiler : ${CMAKE_CXX_COMPILER}")
 
