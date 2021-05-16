@@ -9,6 +9,7 @@ project(qsim)
 # compilation.
 
 # required to ensure correct python version is used
+set(Python3_FIND_VIRTUALENV "ON")
 find_package(Python COMPONENTS Interpreter Development)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -35,7 +36,6 @@ endif ()
 #set(CMAKE_CXX_FLAGS "-O3 -march=native -fopenmp -DDEBUG_SAMPLING")
 
 
-#find_package(PythonInterp REQUIRED)
 message(STATUS "${PYTHON_EXECUTABLE}")
 message(STATUS "compiler flags ${CMAKE_CXX_FLAGS}")
 message(STATUS "C++ compiler : ${CMAKE_CXX_COMPILER}")
