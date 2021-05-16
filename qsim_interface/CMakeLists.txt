@@ -9,8 +9,8 @@ project(qsim)
 # compilation.
 
 # required to ensure correct python version is used
-set(Python3_FIND_VIRTUALENV "ON")
-find_package(Python COMPONENTS Interpreter Development)
+#set(Python3_FIND_VIRTUALENV "ON")
+find_package(Python 3.7 EXACT COMPONENTS Interpreter Development)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
