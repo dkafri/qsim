@@ -49,7 +49,7 @@ message(STATUS "C++ compiler : ${CMAKE_CXX_COMPILER}")
 
 include_directories(../lib include)
 
-if (${CMAKE_BUILD_TYPE} MATCHES "Debug") # also compile tests if in debug mode
+if (${CMAKE_BUILD_TYPE} MATCHES "Test") # also compile tests if in debug mode
     add_executable(state_rep_tests state_rep_tests.cc)
     add_executable(sampling_tests sampling_tests.cc)
 endif ()
