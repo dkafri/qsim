@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.15)
 project(qsim)
 
 
@@ -9,8 +9,15 @@ project(qsim)
 # compilation.
 
 # required to ensure correct python version is used
-#set(Python3_FIND_VIRTUALENV "ON")
-find_package(Python 3.7 EXACT COMPONENTS Interpreter Development)
+set(PYTHON_VERSION "" CACHE STRING "Optional user-selected Python version")
+
+if (PYTHON_VERSION)
+    message(STATUS "Trying to use user specified python version ${PYTHON_VERSION}")
+    find_package(Python ${PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
+else ()
+    find_package(Python COMPONENTS Interpreter Development)
+endif ()
+
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
