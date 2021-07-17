@@ -7,6 +7,8 @@ git submodule update --init --recursive
 Standard install (from source):
 python install.py
 
+Requirements: cmake version 3.13+, git.
+
 For options, do
 python install.py -h
 
