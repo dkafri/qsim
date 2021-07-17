@@ -59,7 +59,7 @@ def main(debug: bool, python_version: Optional[str]):
         if python_version is not None:
             config_file.write(f'python_version={python_version}')
 
-    os.system('python setup.py install')
+    os.system('python3 setup.py install')
 
 
 if __name__ == '__main__':
